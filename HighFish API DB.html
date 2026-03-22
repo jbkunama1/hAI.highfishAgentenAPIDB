@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HighFish API DB - API Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            font-weight: bold;
+            font-size: 24px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+        }
+
+        h1 {
+            font-size: 28px;
+            background: linear-gradient(135deg, #38bdf8, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .logout-btn {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background-color: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .login-screen.hidden {
+            display: none;
+        }
+
+        .login-container {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #38bdf8;
+            font-size: 24px;
+        }
+
+        .login-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            box-shadow: 0 8px 20px rgba(56, 189, 248, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        input[type="password"],
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            background: #0f172a;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 6px;
+            color: #f1f5f9;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            font-family: monospace;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(56, 189, 248, 0.3);
+        }
+
+        .error-message {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .main-content {
+            display: none;
+        }
+
+        .main-content.active {
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(56, 189, 248, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: #334155;
+            color: #cbd5e1;
+        }
+
+        .btn-secondary:hover {
+            background-color: #475569;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            font-size: 22px;
+            margin-bottom: 20px;
+            color: #38bdf8;
+            border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+            padding-bottom: 15px;
+        }
+
+        .modal-body {
+            margin-bottom: 25px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .api-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .header-content {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+
+        .api-card {
+            background: #1e293b;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .api-card:hover {
+            border-color: #38bdf8;
+            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .api-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #38bdf8 0%, #06b6d4 100%);
+        }
+
+        .api-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #38bdf8;
+            margin-bottom: 10px;
+            word-break: break-word;
+        }
+
+        .api-key {
+            background: #0f172a;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            color: #cbd5e1;
+            word-break: break-all;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .copy-btn {
+            background: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: #06b6d4;
+        }
+
+        .api-notes {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(56, 189, 248, 0.1);
+            max-height: 60px;
+            overflow-y: auto;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .card-actions button {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #94a3b8;
+        }
+
+        .success-message {
+            background-color: rgba(34, 197, 94, 0.1);
+            border: 1px solid #22c55e;
+            color: #86efac;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .success-message.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px;
+            background: #0f172a;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 6px;
+            color: #f1f5f9;
+            font-size: 14px;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-container">
+            <div class="login-logo">🐟</div>
+            <h2>HighFish API DB</h2>
+            <div class="error-message" id="loginError"></div>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="password">Passwort</label>
+                    <input type="password" id="password" placeholder="Gib dein Passwort ein" autocomplete="off" required>
+                </div>
+                <button type="submit" class="login-btn">Anmelden</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="main-content" id="mainContent">
+        <div class="container">
+            <!-- Header -->
+            <header>
+                <div class="header-content">
+                    <div class="logo">🐟</div>
+                    <h1>HighFish API DB</h1>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()">Abmelden</button>
+            </header>
+
+            <!-- Stats -->
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="apiCount">0</div>
+                    <div class="stat-label">APIs gespeichert</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="lastUpdate">-</div>
+                    <div class="stat-label">Letzte Aktualisierung</div>
+                </div>
+            </div>
+
+            <!-- Success Message -->
+            <div class="success-message" id="successMsg"></div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <button class="btn-primary" onclick="openAddModal()">+ Neue API</button>
+                <button class="btn-secondary" onclick="exportAPIs()">📥 Exportieren</button>
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Nach API-Name suchen..." onkeyup="filterAPIs()">
+                </div>
+            </div>
+
+            <!-- API Grid -->
+            <div id="apiContainer" class="api-grid"></div>
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <p style="font-size: 40px; margin-bottom: 10px;">📭</p>
+                <p>Noch keine APIs gespeichert.</p>
+                <p style="font-size: 12px; margin-top: 5px;">Klicke auf "Neue API" um eine hinzuzufügen.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal" id="apiModal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">Neue API</div>
+            <form onsubmit="handleSaveAPI(event)">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="apiName">API Name *</label>
+                        <input type="text" id="apiName" placeholder="z.B. GitHub API" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="apiKey">API Key *</label>
+                        <input type="text" id="apiKey" placeholder="Dein geheimer API-Schlüssel" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="apiNotes">Notizen (optional)</label>
+                        <textarea id="apiNotes" placeholder="Zusätzliche Informationen, Endpoint, Gültigkeitsdauer, etc."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">Abbrechen</button>
+                    <button type="submit" class="btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const MASTER_PASSWORD = 'highfish123';
+        let currentEditId = null;
+        let allAPIs = [];
+        let isAuthenticated = false;
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            const auth = localStorage.getItem('hf_auth');
+            if (auth === 'true') {
+                isAuthenticated = true;
+                showMainContent();
+                loadAPIs();
+            } else {
+                showLoginScreen();
+            }
+        });
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const password = document.getElementById('password').value;
+
+            if (password === MASTER_PASSWORD) {
+                localStorage.setItem('hf_auth', 'true');
+                isAuthenticated = true;
+                document.getElementById('password').value = '';
+                showMainContent();
+                loadAPIs();
+            } else {
+                showLoginError('Passwort falsch!');
+                document.getElementById('password').value = '';
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('hf_auth');
+            localStorage.removeItem('hf_apis');
+            isAuthenticated = false;
+            showLoginScreen();
+            document.getElementById('password').value = '';
+        }
+
+        function showLoginScreen() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainContent').classList.remove('active');
+        }
+
+        function showMainContent() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainContent').classList.add('active');
+        }
+
+        function loadAPIs() {
+            const stored = localStorage.getItem('hf_apis');
+            allAPIs = stored ? JSON.parse(stored) : [];
+            renderAPIs(allAPIs);
+            updateStats();
+        }
+
+        function saveAPIs() {
+            localStorage.setItem('hf_apis', JSON.stringify(allAPIs));
+            updateStats();
+        }
+
+        function renderAPIs(apis) {
+            const container = document.getElementById('apiContainer');
+            const empty = document.getElementById('emptyState');
+
+            if (apis.length === 0) {
+                container.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            container.innerHTML = apis.map(api => `
+                <div class="api-card">
+                    <div class="api-name">${escapeHtml(api.name)}</div>
+                    <div class="api-key">
+                        <span id="key-${api.id}" style="flex: 1; word-break: break-all;">••••••••</span>
+                        <button type="button" class="copy-btn" onclick="toggleKeyVisibility(${api.id})" title="Anzeigen/Verbergen">👁️</button>
+                        <button type="button" class="copy-btn" onclick="copyToClipboard(${api.id})" title="Kopieren">📋</button>
+                    </div>
+                    ${api.notes ? `<div class="api-notes">${escapeHtml(api.notes)}</div>` : ''}
+                    <div class="card-actions">
+                        <button type="button" class="btn-secondary" onclick="editAPI(${api.id})">Bearbeiten</button>
+                        <button type="button" class="btn-danger" onclick="deleteAPI(${api.id})">Löschen</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openAddModal() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = 'Neue API';
+            document.getElementById('apiName').value = '';
+            document.getElementById('apiKey').value = '';
+            document.getElementById('apiNotes').value = '';
+            document.getElementById('apiModal').classList.add('active');
+            setTimeout(() => document.getElementById('apiName').focus(), 100);
+        }
+
+        function closeModal() {
+            document.getElementById('apiModal').classList.remove('active');
+            currentEditId = null;
+        }
+
+        function handleSaveAPI(e) {
+            e.preventDefault();
+            const name = document.getElementById('apiName').value.trim();
+            const key = document.getElementById('apiKey').value.trim();
+            const notes = document.getElementById('apiNotes').value.trim();
+
+            if (!name || !key) {
+                alert('Name und API-Key sind erforderlich!');
+                return;
+            }
+
+            if (currentEditId) {
+                const idx = allAPIs.findIndex(a => a.id === currentEditId);
+                if (idx !== -1) {
+                    allAPIs[idx] = { ...allAPIs[idx], name, key, notes, updated_at: new Date().toISOString() };
+                    showSuccess('API aktualisiert');
+                }
+            } else {
+                const newApi = {
+                    id: Date.now(),
+                    name,
+                    key,
+                    notes,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
+
+                if (allAPIs.find(a => a.name === name)) {
+                    alert('API mit diesem Namen existiert bereits!');
+                    return;
+                }
+
+                allAPIs.push(newApi);
+                showSuccess('API gespeichert');
+            }
+
+            saveAPIs();
+            renderAPIs(allAPIs);
+            closeModal();
+        }
+
+        function editAPI(id) {
+            const api = allAPIs.find(a => a.id === id);
+            if (api) {
+                currentEditId = id;
+                document.getElementById('modalTitle').textContent = 'API bearbeiten';
+                document.getElementById('apiName').value = api.name;
+                document.getElementById('apiKey').value = api.key;
+                document.getElementById('apiNotes').value = api.notes || '';
+                document.getElementById('apiModal').classList.add('active');
+            }
+        }
+
+        function deleteAPI(id) {
+            if (confirm('Möchtest du diese API wirklich löschen?')) {
+                allAPIs = allAPIs.filter(a => a.id !== id);
+                saveAPIs();
+                renderAPIs(allAPIs);
+                showSuccess('API gelöscht');
+            }
+        }
+
+        function toggleKeyVisibility(id) {
+            const keyEl = document.getElementById(`key-${id}`);
+            const api = allAPIs.find(a => a.id === id);
+            if (keyEl.textContent === '••••••••') {
+                keyEl.textContent = api.key;
+            } else {
+                keyEl.textContent = '••••••••';
+            }
+        }
+
+        function copyToClipboard(id) {
+            const api = allAPIs.find(a => a.id === id);
+            navigator.clipboard.writeText(api.key).then(() => {
+                showSuccess('In Zwischenablage kopiert!');
+            }).catch(() => {
+                alert('Fehler beim Kopieren');
+            });
+        }
+
+        function filterAPIs() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allAPIs.filter(api => api.name.toLowerCase().includes(search));
+            renderAPIs(filtered);
+        }
+
+        function exportAPIs() {
+            const dataStr = JSON.stringify(allAPIs, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `highfish-apis-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showSuccess('Daten exportiert');
+        }
+
+        function updateStats() {
+            document.getElementById('apiCount').textContent = allAPIs.length;
+            const now = new Date().toLocaleTimeString('de-DE');
+            document.getElementById('lastUpdate').textContent = now;
+        }
+
+        function showLoginError(msg) {
+            const el = document.getElementById('loginError');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 4000);
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('successMsg');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+            if (e.key === 'Enter' && document.getElementById('apiModal').classList.contains('active')) {
+                if (document.getElementById('apiName').value && document.getElementById('apiKey').value) {
+                    handleSaveAPI(e);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
