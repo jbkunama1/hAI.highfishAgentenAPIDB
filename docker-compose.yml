@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  highfish-api-db:
+    build: .
+    container_name: highfish-api-db
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/data/highfish.db
+    volumes:
+      - highfish-data:/data
+    restart: unless-stopped
+    labels:
+      - "com.example.description=HighFish API DB - API Key Management"
+
+volumes:
+  highfish-data:
+    driver: local
