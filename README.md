@@ -9,7 +9,7 @@
 </p>
 
 <p align="left">
-  <img src="./highfishapidblogo.png" alt="highfishAPIDB Logo" width="220" />
+  <img src="/highfishapidblogo.png" alt="highfishAPIDB Logo" width="220" />
 </p>
 
 🎨 A modern, responsive, dark-themed web application for managing your API keys and credentials with a persistent SQLite backend.
