@@ -633,7 +633,9 @@
 
         function handleLogout() {
             localStorage.removeItem('hf_auth');
+            localStorage.removeItem('hf_apis'); // Clear any legacy data
             isAuthenticated = false;
+            allAPIs = [];
             showLoginScreen();
             document.getElementById('password').value = '';
         }
@@ -657,7 +659,7 @@
                 updateStats();
             } catch (error) {
                 console.error('Error loading APIs:', error);
-                showLoginError('Fehler beim Laden der APIs: ' + error.message);
+                showLoginError('Fehler beim Laden der APIs. Bitte versuchen Sie es später erneut.');
             }
         }
 
@@ -677,7 +679,7 @@
                 return result;
             } catch (error) {
                 console.error('Error saving API:', error);
-                showLoginError('Fehler beim Speichern: ' + error.message);
+                showLoginError('Fehler beim Speichern. Bitte versuchen Sie es später erneut.');
                 throw error;
             }
         }
@@ -776,7 +778,7 @@
                     await loadAPIs();
                 } catch (error) {
                     console.error('Error:', error);
-                    showLoginError('Fehler beim Löschen: ' + error.message);
+                    showLoginError('Fehler beim Löschen. Bitte versuchen Sie es später erneut.');
                 }
             }
         }
@@ -804,7 +806,7 @@
             const search = document.getElementById('searchInput').value.toLowerCase();
             const filtered = allAPIs.filter(api => 
                 api.name.toLowerCase().includes(search) || 
-                api.url.toLowerCase().includes(search) ||
+                (api.url && api.url.toLowerCase().includes(search)) ||
                 (api.notes && api.notes.toLowerCase().includes(search))
             );
             renderAPIs(filtered);
@@ -827,7 +829,7 @@
                 showSuccess('Daten exportiert');
             } catch (error) {
                 console.error('Error:', error);
-                showLoginError('Fehler beim Exportieren: ' + error.message);
+                showLoginError('Fehler beim Exportieren. Bitte versuchen Sie es später erneut.');
             }
         }
 

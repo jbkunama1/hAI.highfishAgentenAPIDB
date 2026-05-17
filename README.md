@@ -96,7 +96,7 @@ If you're using Portainer:
 The password is stored in the application's source code and can be changed before you deploy:
 
 1. Open `index.html` in a text editor.
-2. Locate the password constant (around line 596): `const MASTER_PASSWORD = 'highfish123';`
+2. Locate the password constant in the JavaScript section (around the beginning of the script block): `const MASTER_PASSWORD = 'highfish123';`
 3. Replace `highfish123` with your desired password.
 4. Rebuild and redeploy the Docker container:
    ```bash
@@ -116,9 +116,14 @@ The following environment variables can be set when running the Docker container
 | `DB_PATH` | `/data/highfish.db` | Path to the SQLite database file |
 | `NODE_ENV` | `production` | Node.js environment |
 
-Example with custom port:
+Example with custom port (modify `docker-compose.yml` or set via environment variable):
 ```bash
-docker-compose -e PORT=8080 up -d
+# Option 1: Create a .env file with your variables
+echo "PORT=8080" > .env
+docker-compose up -d
+
+# Option 2: Export environment variables and modify docker-compose.yml
+# Edit docker-compose.yml and set PORT under the environment section
 ```
 
 Or modify `docker-compose.yml`:

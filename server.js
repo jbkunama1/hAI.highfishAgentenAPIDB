@@ -15,6 +15,29 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, '.')));
 
+// Simple rate limiting middleware (max 100 requests per minute per IP)
+const rateLimit = {};
+app.use((req, res, next) => {
+  const ip = req.ip;
+  const now = Date.now();
+  const windowStart = now - 60000; // 1 minute window
+  
+  if (!rateLimit[ip]) {
+    rateLimit[ip] = [];
+  }
+  
+  // Remove old requests outside the window
+  rateLimit[ip] = rateLimit[ip].filter(time => time > windowStart);
+  
+  // Check if rate limit exceeded
+  if (rateLimit[ip].length >= 100) {
+    return res.status(429).json({ error: 'Too many requests, please try again later' });
+  }
+  
+  rateLimit[ip].push(now);
+  next();
+});
+
 // Ensure data directory exists
 const dataDir = path.dirname(DB_PATH);
 try {
