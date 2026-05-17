@@ -1,12 +1,12 @@
 # 🐟 highfishAPIDB
 
-A modern, responsive, dark-themed web application for managing your API keys and credentials — entirely in the browser, with no backend required.
+A modern, responsive, dark-themed web application for managing your API keys and credentials with SQLite database backend for persistent, session-independent storage.
 
 ---
 
 ## 📋 Overview
 
-**highfishAPIDB** is a lightweight, single-file web application that lets you store, search, and manage API keys and database credentials directly in your browser using `localStorage`. It features a sleek dark theme, password protection, and a full set of CRUD operations — making it the perfect personal API credential manager you can use instantly by just opening a file.
+**highfishAPIDB** is a full-stack web application that lets you store, search, and manage API keys and database credentials in a dedicated SQLite database. It features a sleek dark theme, password protection, and a full set of CRUD operations — making it the perfect API credential manager that persists across browser sessions and devices. Deploy it easily with Docker!
 
 ---
 
@@ -14,13 +14,14 @@ A modern, responsive, dark-themed web application for managing your API keys and
 
 | Feature | Description |
 |---|---|
-| 🔐 **Password Protection** | Access is gated by a configurable password stored securely in `localStorage`. Default: `highfish123`. |
+| 🔐 **Password Protection** | Access is gated by a configurable password. Default: `highfish123`. |
 | 📝 **API Management** | Add, edit, and delete API entries with name, URL, key, and notes fields. |
-| 🔍 **Search** | Real-time search across all stored API entries. |
+| 🔍 **Search** | Real-time search across all stored API entries (name, URL, notes). |
 | 👁️ **API Key Masking** | API keys are masked by default; use the Show/Hide toggle to reveal them individually. |
 | 📋 **Copy to Clipboard** | One-click copying of any API key to the clipboard. |
 | 📤 **JSON Export** | Export all stored entries as a formatted JSON file for backup or transfer. |
-| 💾 **Local Storage** | All data is stored in the browser's `localStorage` — no server, no account needed. |
+| 💾 **Persistent Database** | All data is stored in SQLite database — persists across sessions, browsers, and devices. |
+| 🐳 **Docker Support** | Easy deployment with Docker and Docker Compose. |
 | 📱 **Mobile-Optimised** | Fully responsive layout that works on phones, tablets, and desktops. |
 | 🌑 **Dark Theme** | Eye-friendly dark UI, always on. |
 
@@ -28,36 +29,104 @@ A modern, responsive, dark-themed web application for managing your API keys and
 
 ## 🚀 Getting Started
 
-No installation or build step required.
+### Option 1: Docker Deployment (Recommended)
 
-1. **Clone or download** this repository:
+**Requirements:** Docker and Docker Compose
+
+1. **Clone the repository:**
    ```bash
    git clone https://github.com/jbkunama1/highfishAPIDB.git
+   cd highfishAPIDB
    ```
 
-2. **Open** `index.html` (or the main HTML file) in any modern web browser.
+2. **Start with Docker Compose:**
+   ```bash
+   docker-compose up -d
+   ```
 
-3. **Log in** with the default password:
+3. **Access the application:**
+   - Open your browser and navigate to `http://localhost:3000`
+
+4. **Log in** with the default password:
    ```
    highfish123
    ```
 
-4. Start adding your API entries — they are saved automatically in your browser.
+The SQLite database will be automatically created in the `highfish-data` volume.
 
-> **Tip:** Because data is stored in `localStorage`, it is scoped to the browser and device you use. Use the JSON Export feature to back up your entries.
+#### Using with Portainer
+
+If you're using Portainer:
+1. Go to **Stacks** → **Add Stack**
+2. Paste the contents of `docker-compose.yml`
+3. Set the name to `highfish-api-db`
+4. Click **Deploy the stack**
+5. Access via `http://your-portainer-host:3000`
+
+### Option 2: Manual Installation
+
+**Requirements:** Node.js 18+ and npm
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/jbkunama1/highfishAPIDB.git
+   cd highfishAPIDB
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Start the server:**
+   ```bash
+   npm start
+   ```
+   The app will be available at `http://localhost:3000`
+
+4. **Log in** with the default password:
+   ```
+   highfish123
+   ```
 
 ---
 
 ## 🔑 Changing the Password
 
-The password is stored in the application's source code and can be changed before you deploy or use it:
+The password is stored in the application's source code and can be changed before you deploy:
 
-1. Open the main HTML/JS file in a text editor.
-2. Locate the password constant (e.g. `const PASSWORD = "highfish123";`).
+1. Open `index.html` in a text editor.
+2. Locate the password constant (around line 596): `const MASTER_PASSWORD = 'highfish123';`
 3. Replace `highfish123` with your desired password.
-4. Save the file and reopen it in the browser.
+4. Rebuild and redeploy the Docker container:
+   ```bash
+   docker-compose down
+   docker-compose up --build -d
+   ```
 
-> **Note:** After changing the password in the code, any previously saved session in `localStorage` may need to be cleared for the new password to take effect.
+---
+
+## ⚙️ Environment Variables
+
+The following environment variables can be set when running the Docker container:
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `3000` | Port the server listens on |
+| `DB_PATH` | `/data/highfish.db` | Path to the SQLite database file |
+| `NODE_ENV` | `production` | Node.js environment |
+
+Example with custom port:
+```bash
+docker-compose -e PORT=8080 up -d
+```
+
+Or modify `docker-compose.yml`:
+```yaml
+environment:
+  - PORT=8080
+  - DB_PATH=/data/highfish.db
+```
 
 ---
 
@@ -96,18 +165,67 @@ The password is stored in the application's source code and can be changed befor
 
 ## 🛠️ Technical Details
 
-- **Stack:** Pure HTML, CSS, and vanilla JavaScript — zero dependencies.
-- **Storage:** Browser `localStorage` (client-side only, never sent to any server).
-- **Authentication:** Simple password check against a hardcoded value; session state tracked in `localStorage`.
-- **Compatibility:** Works in all modern browsers (Chrome, Firefox, Edge, Safari).
+### Architecture
+
+- **Frontend:** HTML, CSS, and vanilla JavaScript (no dependencies)
+- **Backend:** Node.js with Express.js
+- **Database:** SQLite 3 for persistent data storage
+- **Deployment:** Docker and Docker Compose
+- **Storage:** Server-side SQLite database (persists across sessions, browsers, and devices)
+- **Authentication:** Session-based with password stored in `localStorage` (client-side auth state)
+
+### Project Structure
+
+```
+highfishAPIDB/
+├── index.html              # Frontend UI
+├── server.js               # Node.js/Express backend with API endpoints
+├── package.json            # Node.js dependencies
+├── Dockerfile              # Docker image configuration
+├── docker-compose.yml      # Docker Compose orchestration
+├── README.md              # This file
+└── highfishapidblogo.png  # Logo asset
+```
+
+### API Endpoints
+
+- `GET /api/entries` - Get all stored API entries
+- `GET /api/entries/:id` - Get a specific entry by ID
+- `POST /api/entries` - Create a new API entry
+- `PUT /api/entries/:id` - Update an existing entry
+- `DELETE /api/entries/:id` - Delete an entry
+- `GET /api/export` - Export all entries as JSON
+- `GET /api/health` - Health check endpoint
+
+### Database Schema
+
+The SQLite database contains a single table:
+
+```sql
+CREATE TABLE api_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  apiKey TEXT NOT NULL,
+  notes TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+)
+```
 
 ---
 
 ## 🔒 Security Notes
 
-- All data is stored **locally in your browser**. No data is transmitted to any external server.
+- Data is stored **on the server in a SQLite database**, not in the browser.
+- The application runs on your own infrastructure (Docker container).
 - The password provides basic access control; it is **not** cryptographically secure. Do not rely on it as the sole protection for highly sensitive credentials.
-- If you share the device or browser profile with others, they may be able to access `localStorage` directly.
+- In production, consider:
+  - Using strong passwords and changing the default
+  - Running behind HTTPS/TLS
+  - Using environment variables for sensitive configuration
+  - Restricting network access to the container
+  - Regular backups of the `highfish-data` volume
 - For production use with sensitive secrets, consider a dedicated secrets manager.
 
 ---

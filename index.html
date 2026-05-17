@@ -576,6 +576,10 @@
                         <input type="text" id="apiName" placeholder="z.B. GitHub API" required>
                     </div>
                     <div class="form-group">
+                        <label for="apiUrl">API URL *</label>
+                        <input type="text" id="apiUrl" placeholder="z.B. https://api.github.com" required>
+                    </div>
+                    <div class="form-group">
                         <label for="apiKey">API Key *</label>
                         <input type="text" id="apiKey" placeholder="Dein geheimer API-Schlüssel" required>
                     </div>
@@ -593,6 +597,7 @@
     </div>
 
     <script>
+        const API_BASE = window.location.origin + '/api';
         const MASTER_PASSWORD = 'highfish123';
         let currentEditId = null;
         let allAPIs = [];
@@ -628,7 +633,6 @@
 
         function handleLogout() {
             localStorage.removeItem('hf_auth');
-            localStorage.removeItem('hf_apis');
             isAuthenticated = false;
             showLoginScreen();
             document.getElementById('password').value = '';
@@ -644,16 +648,38 @@
             document.getElementById('mainContent').classList.add('active');
         }
 
-        function loadAPIs() {
-            const stored = localStorage.getItem('hf_apis');
-            allAPIs = stored ? JSON.parse(stored) : [];
-            renderAPIs(allAPIs);
-            updateStats();
+        async function loadAPIs() {
+            try {
+                const response = await fetch(`${API_BASE}/entries`);
+                if (!response.ok) throw new Error('Failed to load APIs');
+                allAPIs = await response.json();
+                renderAPIs(allAPIs);
+                updateStats();
+            } catch (error) {
+                console.error('Error loading APIs:', error);
+                showLoginError('Fehler beim Laden der APIs: ' + error.message);
+            }
         }
 
-        function saveAPIs() {
-            localStorage.setItem('hf_apis', JSON.stringify(allAPIs));
-            updateStats();
+        async function saveAPI(apiData) {
+            try {
+                const method = currentEditId ? 'PUT' : 'POST';
+                const url = currentEditId ? `${API_BASE}/entries/${currentEditId}` : `${API_BASE}/entries`;
+                
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(apiData)
+                });
+                
+                if (!response.ok) throw new Error('Failed to save API');
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('Error saving API:', error);
+                showLoginError('Fehler beim Speichern: ' + error.message);
+                throw error;
+            }
         }
 
         function renderAPIs(apis) {
@@ -670,6 +696,9 @@
             container.innerHTML = apis.map(api => `
                 <div class="api-card">
                     <div class="api-name">${escapeHtml(api.name)}</div>
+                    <div style="color: #94a3b8; font-size: 12px; margin-bottom: 10px;">
+                        <strong>URL:</strong> <code style="background: #0f172a; padding: 2px 4px; border-radius: 3px;">${escapeHtml(api.url)}</code>
+                    </div>
                     <div class="api-key">
                         <span id="key-${api.id}" style="flex: 1; word-break: break-all;">••••••••</span>
                         <button type="button" class="copy-btn" onclick="toggleKeyVisibility(${api.id})" title="Anzeigen/Verbergen">👁️</button>
@@ -688,6 +717,7 @@
             currentEditId = null;
             document.getElementById('modalTitle').textContent = 'Neue API';
             document.getElementById('apiName').value = '';
+            document.getElementById('apiUrl').value = '';
             document.getElementById('apiKey').value = '';
             document.getElementById('apiNotes').value = '';
             document.getElementById('apiModal').classList.add('active');
@@ -699,45 +729,28 @@
             currentEditId = null;
         }
 
-        function handleSaveAPI(e) {
+        async function handleSaveAPI(e) {
             e.preventDefault();
             const name = document.getElementById('apiName').value.trim();
+            const url = document.getElementById('apiUrl').value.trim();
             const key = document.getElementById('apiKey').value.trim();
             const notes = document.getElementById('apiNotes').value.trim();
 
-            if (!name || !key) {
-                alert('Name und API-Key sind erforderlich!');
+            if (!name || !url || !key) {
+                alert('Name, URL und API-Key sind erforderlich!');
                 return;
             }
 
-            if (currentEditId) {
-                const idx = allAPIs.findIndex(a => a.id === currentEditId);
-                if (idx !== -1) {
-                    allAPIs[idx] = { ...allAPIs[idx], name, key, notes, updated_at: new Date().toISOString() };
-                    showSuccess('API aktualisiert');
-                }
-            } else {
-                const newApi = {
-                    id: Date.now(),
-                    name,
-                    key,
-                    notes,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
-
-                if (allAPIs.find(a => a.name === name)) {
-                    alert('API mit diesem Namen existiert bereits!');
-                    return;
-                }
-
-                allAPIs.push(newApi);
-                showSuccess('API gespeichert');
+            try {
+                const apiData = { name, url, apiKey: key, notes };
+                await saveAPI(apiData);
+                
+                showSuccess(currentEditId ? 'API aktualisiert' : 'API gespeichert');
+                await loadAPIs();
+                closeModal();
+            } catch (error) {
+                console.error('Error:', error);
             }
-
-            saveAPIs();
-            renderAPIs(allAPIs);
-            closeModal();
         }
 
         function editAPI(id) {
@@ -746,18 +759,25 @@
                 currentEditId = id;
                 document.getElementById('modalTitle').textContent = 'API bearbeiten';
                 document.getElementById('apiName').value = api.name;
-                document.getElementById('apiKey').value = api.key;
+                document.getElementById('apiUrl').value = api.url;
+                document.getElementById('apiKey').value = api.apiKey;
                 document.getElementById('apiNotes').value = api.notes || '';
                 document.getElementById('apiModal').classList.add('active');
             }
         }
 
-        function deleteAPI(id) {
+        async function deleteAPI(id) {
             if (confirm('Möchtest du diese API wirklich löschen?')) {
-                allAPIs = allAPIs.filter(a => a.id !== id);
-                saveAPIs();
-                renderAPIs(allAPIs);
-                showSuccess('API gelöscht');
+                try {
+                    const response = await fetch(`${API_BASE}/entries/${id}`, { method: 'DELETE' });
+                    if (!response.ok) throw new Error('Failed to delete API');
+                    
+                    showSuccess('API gelöscht');
+                    await loadAPIs();
+                } catch (error) {
+                    console.error('Error:', error);
+                    showLoginError('Fehler beim Löschen: ' + error.message);
+                }
             }
         }
 
@@ -765,7 +785,7 @@
             const keyEl = document.getElementById(`key-${id}`);
             const api = allAPIs.find(a => a.id === id);
             if (keyEl.textContent === '••••••••') {
-                keyEl.textContent = api.key;
+                keyEl.textContent = api.apiKey;
             } else {
                 keyEl.textContent = '••••••••';
             }
@@ -773,7 +793,7 @@
 
         function copyToClipboard(id) {
             const api = allAPIs.find(a => a.id === id);
-            navigator.clipboard.writeText(api.key).then(() => {
+            navigator.clipboard.writeText(api.apiKey).then(() => {
                 showSuccess('In Zwischenablage kopiert!');
             }).catch(() => {
                 alert('Fehler beim Kopieren');
@@ -782,20 +802,33 @@
 
         function filterAPIs() {
             const search = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = allAPIs.filter(api => api.name.toLowerCase().includes(search));
+            const filtered = allAPIs.filter(api => 
+                api.name.toLowerCase().includes(search) || 
+                api.url.toLowerCase().includes(search) ||
+                (api.notes && api.notes.toLowerCase().includes(search))
+            );
             renderAPIs(filtered);
         }
 
-        function exportAPIs() {
-            const dataStr = JSON.stringify(allAPIs, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `highfish-apis-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showSuccess('Daten exportiert');
+        async function exportAPIs() {
+            try {
+                const response = await fetch(`${API_BASE}/export`);
+                if (!response.ok) throw new Error('Failed to export');
+                const data = await response.json();
+                
+                const dataStr = JSON.stringify(data, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `highfish-apis-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showSuccess('Daten exportiert');
+            } catch (error) {
+                console.error('Error:', error);
+                showLoginError('Fehler beim Exportieren: ' + error.message);
+            }
         }
 
         function updateStats() {
@@ -828,7 +861,7 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeModal();
             if (e.key === 'Enter' && document.getElementById('apiModal').classList.contains('active')) {
-                if (document.getElementById('apiName').value && document.getElementById('apiKey').value) {
+                if (document.getElementById('apiName').value && document.getElementById('apiUrl').value && document.getElementById('apiKey').value) {
                     handleSaveAPI(e);
                 }
             }
