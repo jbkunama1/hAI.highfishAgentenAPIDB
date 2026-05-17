@@ -1,6 +1,18 @@
-# 🐟 highfishAPIDB
+# 🐟 highfishAPIDB 🌈
 
-A modern, responsive, dark-themed web application for managing your API keys and credentials with SQLite database backend for persistent, session-independent storage.
+<p align="left">
+  <img src="https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js 18+" />
+  <img src="https://img.shields.io/badge/Express.js-4.x-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express 4.x" />
+  <img src="https://img.shields.io/badge/SQLite-3-003B57?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite 3" />
+  <img src="https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Ready" />
+  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License" />
+</p>
+
+<p align="left">
+  <img src="./highfishapidblogo.png" alt="highfishAPIDB Logo" width="220" />
+</p>
+
+🎨 A modern, responsive, dark-themed web application for managing your API keys and credentials with a persistent SQLite backend.
 
 ---
 
@@ -237,5 +249,5 @@ CREATE TABLE api_entries (
 
 ## 📄 License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
-
+✅ This project is licensed under the **MIT License**.  
+See [LICENSE](LICENSE) for full details.
