@@ -7,7 +7,8 @@ const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const DB_PATH = process.env.DB_PATH || '/data/highfish.db';
+// Use /data for Docker, or ./data for local development
+const DB_PATH = process.env.DB_PATH || (process.env.NODE_ENV === 'production' ? '/data/highfish.db' : './data/highfish.db');
 
 // Middleware
 app.use(cors());
@@ -16,8 +17,13 @@ app.use(express.static(path.join(__dirname, '.')));
 
 // Ensure data directory exists
 const dataDir = path.dirname(DB_PATH);
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true });
+try {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+} catch (err) {
+  console.warn(`Warning: Could not create data directory at ${dataDir}:`, err.message);
+  // Continue anyway, database might be accessible
 }
 
 // Initialize SQLite database
