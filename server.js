@@ -190,6 +190,69 @@ app.get('/api/export', (req, res) => {
   });
 });
 
+// Import entries from JSON (array of { name, url, apiKey, notes })
+// Expected JSON body: [
+//   "Name;URL;API_KEY;Notizen optional",
+//   "OpenWeather;https://api.openweathermap.org;KEY123;Wetterdaten",
+//   "hAI Agent DB;https://api.highfish.local;ABCDEF;Interne Tests"
+// ]
+app.post('/api/import-text', (req, res) => {
+  const lines = req.body;
+
+  if (!Array.isArray(lines)) {
+    return res.status(400).json({ error: 'Request body must be an array of text lines' });
+  }
+
+  const entries = lines
+    .map(line => {
+      if (typeof line !== 'string') return null;
+      const trimmed = line.trim();
+      if (!trimmed) return null;
+
+      const parts = trimmed.split(';');
+      const name = parts[0] ? parts[0].trim() : '';
+      const url = parts[1] ? parts[1].trim() : '';
+      const apiKey = parts[2] ? parts[2].trim() : '';
+      const notes = parts.slice(3).join(';').trim();
+
+      if (!name || !url || !apiKey) {
+        return null; // skip invalid
+      }
+
+      return { name, url, apiKey, notes };
+    })
+    .filter(e => e !== null);
+
+  if (entries.length === 0) {
+    return res.status(400).json({ error: 'No valid entries found in provided text lines' });
+  }
+
+  const stmt = db.prepare(
+    `INSERT INTO api_entries (name, url, apiKey, notes) VALUES (?, ?, ?, ?)`
+  );
+
+  db.serialize(() => {
+    try {
+      let importedCount = 0;
+
+      entries.forEach(entry => {
+        stmt.run(entry.name, entry.url, entry.apiKey, entry.notes || '');
+        importedCount++;
+      });
+
+      stmt.finalize(err => {
+        if (err) {
+          return res.status(500).json({ error: err.message });
+        }
+        res.json({ success: true, imported: importedCount });
+      });
+    } catch (e) {
+      stmt.finalize();
+      res.status(500).json({ error: 'Import failed' });
+    }
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
