@@ -3,7 +3,7 @@ services:
     image: ghcr.io/jbkunama1/hai.highfishagentenapidb:latest
     container_name: highfish-api-db
     ports:
-      - "3000:3000"
+      - "5555:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
