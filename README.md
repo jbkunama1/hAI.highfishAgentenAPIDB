@@ -254,6 +254,30 @@ Tabelle: `api_entries`
 | `PORT` | `3000` | HTTP-Port des Servers |
 | `DB_PATH` | `./data/highfish.db` (dev) / `/data/highfish.db` (prod) | Pfad zur SQLite-Datei |
 | `NODE_ENV` | – | `production` aktiviert den Docker-Datenpfad |
+| `API_KEY` | – | API-Key für Bearer-Token-Authentifizierung (empfohlen) |
+| `AUTH_USER` / `AUTH_PASSWORD` | – | Alternativ: Basic-Auth-Zugangsdaten |
+| `ALLOWED_ORIGINS` | `http://localhost:3000` | Kommagetrennte CORS-Whitelist |
+
+### Authentifizierung
+
+Alle `/api`-Routen außer `/api/health` sind **geschützt**. Setze mindestens eine der folgenden Optionen:
+
+**Option 1 – Bearer-Token:**
+```bash
+API_KEY=geheimer-schluessel
+# Anfrage:
+curl -H "Authorization: Bearer geheimer-schluessel" http://localhost:3000/api/entries
+```
+
+**Option 2 – Basic Auth:**
+```bash
+AUTH_USER=admin
+AUTH_PASSWORD=geheim
+# Anfrage:
+curl -u admin:geheim http://localhost:3000/api/entries
+```
+
+**Wichtig:** Ohne gesetzten `API_KEY`/`AUTH_*` sind die Routen weiterhin offen. Setze die Variablen in Produktion immer! In `docker-compose.yml` werden die Variablen bereits aus der lokalen `.env` übernommen.
 
 ---
 

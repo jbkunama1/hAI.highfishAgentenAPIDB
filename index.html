@@ -525,8 +525,8 @@
             <div class="error-message" id="loginError"></div>
             <form onsubmit="handleLogin(event)">
                 <div class="form-group">
-                    <label for="password">Passwort</label>
-                    <input type="password" id="password" placeholder="Gib dein Passwort ein" autocomplete="off" required>
+                    <label for="password">API-Key</label>
+                    <input type="password" id="password" placeholder="Gib deinen API-Key ein" autocomplete="off" required>
                 </div>
                 <button type="submit" class="login-btn">Anmelden</button>
             </form>
@@ -614,18 +614,38 @@
 
     <script>
         const API_BASE = window.location.origin + '/api';
-        const MASTER_PASSWORD = 'highfish123';
         let currentEditId = null;
         let allAPIs = [];
         let isAuthenticated = false;
+        // API-Key für die Backend-Authentifizierung wird zur Laufzeit validiert,
+        // nicht im Client hartcodiert.
+        let apiKey = null;
 
         // Initialize
         window.addEventListener('DOMContentLoaded', () => {
             const auth = localStorage.getItem('hf_auth');
             if (auth === 'true') {
+                // Key wird benötigt, um Requests nach einem Reload zu authentifizieren
+                const storedKey = localStorage.getItem('hf_api_key');
+                if (!storedKey) {
+                    // Kein gespeicherter Key -> erneut einloggen
+                    localStorage.removeItem('hf_auth');
+                    showLoginScreen();
+                    return;
+                }
+                setApiKey(storedKey);
                 isAuthenticated = true;
-                showMainContent();
-                loadAPIs();
+                // Prüfen, ob der Key noch gültig ist
+                fetch(`${API_BASE}/entries`, { headers: getAuthHeaders() }).then(function (res) {
+                    if (!res.ok) {
+                        handleLogout();
+                        return;
+                    }
+                    showMainContent();
+                    loadAPIs();
+                }).catch(function () {
+                    handleLogout();
+                });
             } else {
                 showLoginScreen();
             }
@@ -633,23 +653,50 @@
 
         function handleLogin(e) {
             e.preventDefault();
-            const password = document.getElementById('password').value;
-
-            if (password === MASTER_PASSWORD) {
-                localStorage.setItem('hf_auth', 'true');
-                isAuthenticated = true;
-                document.getElementById('password').value = '';
-                showMainContent();
-                loadAPIs();
-            } else {
-                showLoginError('Passwort falsch!');
-                document.getElementById('password').value = '';
+            const password = document.getElementById('password').value.trim();
+            if (!password) {
+                showLoginError('Bitte einen API-Key eingeben.');
+                return;
             }
+
+            // API-Key gegen das Backend validieren
+            setApiKey(password);
+            fetch(`${API_BASE}/entries`, {
+                headers: { 'Authorization': 'Bearer ' + apiKey }
+            }).then(async (res) => {
+                if (res.ok) {
+                    localStorage.setItem('hf_auth', 'true');
+                    localStorage.setItem('hf_api_key', password);
+                    isAuthenticated = true;
+                    document.getElementById('password').value = '';
+                    showMainContent();
+                    loadAPIs();
+                } else {
+                    setApiKey(null);
+                    showLoginError('API-Key falsch oder abgelaufen.');
+                    document.getElementById('password').value = '';
+                }
+            }).catch(() => {
+                setApiKey(null);
+                showLoginError('Verbindung zum Server fehlgeschlagen.');
+            });
+        }
+
+        function setApiKey(val) {
+            apiKey = val || null;
+        }
+
+        function getAuthHeaders(extra) {
+            const headers = (extra && Object.assign({}, extra)) || {};
+            if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+            return headers;
         }
 
         function handleLogout() {
             localStorage.removeItem('hf_auth');
+            localStorage.removeItem('hf_api_key');
             localStorage.removeItem('hf_apis'); // Clear any legacy data
+            setApiKey(null);
             isAuthenticated = false;
             allAPIs = [];
             showLoginScreen();
@@ -668,7 +715,7 @@
 
         async function loadAPIs() {
             try {
-                const response = await fetch(`${API_BASE}/entries`);
+                const response = await fetch(`${API_BASE}/entries`, { headers: getAuthHeaders() });
                 if (!response.ok) throw new Error('Failed to load APIs');
                 allAPIs = await response.json();
                 renderAPIs(allAPIs);
@@ -686,7 +733,7 @@
                 
                 const response = await fetch(url, {
                     method: method,
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                     body: JSON.stringify(apiData)
                 });
                 
@@ -787,7 +834,7 @@
         async function deleteAPI(id) {
             if (confirm('Möchtest du diese API wirklich löschen?')) {
                 try {
-                    const response = await fetch(`${API_BASE}/entries/${id}`, { method: 'DELETE' });
+                    const response = await fetch(`${API_BASE}/entries/${id}`, { method: 'DELETE', headers: getAuthHeaders() });
                     if (!response.ok) throw new Error('Failed to delete API');
                     
                     showSuccess('API gelöscht');
@@ -830,7 +877,7 @@
 
         async function exportAPIs() {
             try {
-                const response = await fetch(`${API_BASE}/export`);
+                const response = await fetch(`${API_BASE}/export`, { headers: getAuthHeaders() });
                 if (!response.ok) throw new Error('Failed to export');
                 const data = await response.json();
                 
