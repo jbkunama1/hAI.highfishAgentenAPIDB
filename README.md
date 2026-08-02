@@ -102,7 +102,44 @@ Ein [GitHub Actions Workflow](.github/workflows/docker-build.yml) baut das Image
 
 ### In Portainer
 
-Stack aus `docker-compose.yml` importieren oder direkt deployen.
+Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI-Workflow gebaut. Für Portainer gibt es eine spezielle Datei **`docker-compose.prod.yml`**, die das fertige Image nutzt (statt lokal zu bauen).
+
+**Schritt 1 – GHCR-Registry hinterlegen (nur bei privatem Paket)**
+
+1. GitHub → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained** → **Generate new token**
+   - Repository: `hAI.highfishAgentenAPIDB`
+   - Repository permissions → **Packages: Read**
+2. Portainer → **Registries** → **Add registry** → **GitHub Container Registry**
+   - **URL:** `https://ghcr.io`
+   - **Username:** `jbkunama1`
+   - **Token:** der erstellte Personal Access Token
+3. Speichern
+
+> Ist das Container-Paket **öffentlich** (`github.com/jbkunama1/hAI.highfishAgentenAPIDB/pkgs/container/hai.highfishagentenapidb` → Settings → Change visibility), entfällt dieser Schritt.
+
+**Schritt 2 – Stack aus dem Repository anlegen**
+
+1. Portainer → **Stacks** → **Add stack**
+2. **Name:** bspw. `highfish-api-db`
+3. **Build method:** **Repository** (Alternative: importiere `docker-compose.prod.yml` als Web-Editor)
+4. - **Repository URL:** `https://github.com/jbkunama1/hAI.highfishAgentenAPIDB.git`
+   - **Ref:** `main`
+   - **Compose path:** `docker-compose.prod.yml`
+5. **Environment variables** setzen (mindestens `API_KEY`):
+   | Variable | Beispiel |
+   |----------|----------|
+   | `API_KEY` | `dein-geheimer-schluessel` |
+   | `ALLOWED_ORIGINS` | `https://api.deine-domain.de` |
+   | `AUTH_USER` / `AUTH_PASSWORD` | optional |
+6. **Deploy the stack**
+
+**Schritt 3 – prüfen**
+
+- Container innerhalb von ~30 s **healthy** (Healthcheck via `curl /api/health`)
+- `curl http://<server-ip>:3000/api/health` → `{"status":"ok",...}`
+- `curl http://<server-ip>:3000/api/entries` → `401` ohne API-Key
+
+> **Nach einem Image-Update:** In Portainer beim Stack **Update the stack** klicken, damit der Container das neue `latest`-Image zieht und neu startet.
 
 ---
 
