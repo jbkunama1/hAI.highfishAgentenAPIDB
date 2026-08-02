@@ -737,7 +737,7 @@
             try {
                 const response = await fetch(`${API_BASE}/entries`, { headers: getAuthHeaders() });
                 if (!response.ok) throw new Error('Failed to load APIs');
-                allAPIs = await response.json();
+                allAPIs = (await response.json()).data || [];
                 renderAPIs(allAPIs);
                 updateStats();
             } catch (error) {
