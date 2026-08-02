@@ -592,8 +592,28 @@
                         <input type="text" id="apiName" placeholder="z.B. GitHub API" required>
                     </div>
                     <div class="form-group">
-                        <label for="apiUrl">API URL *</label>
-                        <input type="text" id="apiUrl" placeholder="z.B. https://api.github.com" required>
+                        <label for="apiCategory">Kategorie (optional)</label>
+                        <select id="apiCategory">
+                            <option value="">— keine Auswahl —</option>
+                            <option>LLM</option>
+                            <option>Picture</option>
+                            <option>Media</option>
+                            <option>Video</option>
+                            <option>Security</option>
+                            <option>Github</option>
+                            <option>Google</option>
+                            <option>9router</option>
+                            <option>MCP</option>
+                            <option>Other</option>
+                            <option>Mail</option>
+                            <option>Finance</option>
+                            <option>Bot</option>
+                            <option>HomeAutomation</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="apiUrl">API URL (optional)</label>
+                        <input type="text" id="apiUrl" placeholder="z.B. https://api.github.com">
                     </div>
                     <div class="form-group">
                         <label for="apiKey">API Key *</label>
@@ -760,10 +780,13 @@
             empty.style.display = 'none';
             container.innerHTML = apis.map(api => `
                 <div class="api-card">
-                    <div class="api-name">${escapeHtml(api.name)}</div>
-                    <div style="color: #94a3b8; font-size: 12px; margin-bottom: 10px;">
-                        <strong>URL:</strong> <code style="background: #0f172a; padding: 2px 4px; border-radius: 3px;">${escapeHtml(api.url)}</code>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <div class="api-name">${escapeHtml(api.name)}</div>
+                        ${api.category ? `<span style="background:#1e293b; border:1px solid #334155; color:#93c5fd; padding:2px 10px; border-radius:9999px; font-size:11px; white-space:nowrap;">${escapeHtml(api.category)}</span>` : ''}
                     </div>
+                    ${api.url ? `<div style="color: #94a3b8; font-size: 12px; margin-bottom: 10px;">
+                        <strong>URL:</strong> <code style="background: #0f172a; padding: 2px 4px; border-radius: 3px;">${escapeHtml(api.url)}</code>
+                    </div>` : ''}
                     <div class="api-key">
                         <span id="key-${api.id}" style="flex: 1; word-break: break-all;">••••••••</span>
                         <button type="button" class="copy-btn" onclick="toggleKeyVisibility(${api.id})" title="Anzeigen/Verbergen">👁️</button>
@@ -782,6 +805,7 @@
             currentEditId = null;
             document.getElementById('modalTitle').textContent = 'Neue API';
             document.getElementById('apiName').value = '';
+            document.getElementById('apiCategory').value = '';
             document.getElementById('apiUrl').value = '';
             document.getElementById('apiKey').value = '';
             document.getElementById('apiNotes').value = '';
@@ -797,17 +821,18 @@
         async function handleSaveAPI(e) {
             e.preventDefault();
             const name = document.getElementById('apiName').value.trim();
+            const category = document.getElementById('apiCategory').value;
             const url = document.getElementById('apiUrl').value.trim();
             const key = document.getElementById('apiKey').value.trim();
             const notes = document.getElementById('apiNotes').value.trim();
 
-            if (!name || !url || !key) {
-                alert('Name, URL und API-Key sind erforderlich!');
+            if (!name || !key) {
+                alert('Name und API-Key sind erforderlich!');
                 return;
             }
 
             try {
-                const apiData = { name, url, apiKey: key, notes };
+                const apiData = { name, url: url || null, apiKey: key, category: category || null, notes };
                 await saveAPI(apiData);
                 
                 showSuccess(currentEditId ? 'API aktualisiert' : 'API gespeichert');
@@ -824,7 +849,8 @@
                 currentEditId = id;
                 document.getElementById('modalTitle').textContent = 'API bearbeiten';
                 document.getElementById('apiName').value = api.name;
-                document.getElementById('apiUrl').value = api.url;
+                document.getElementById('apiCategory').value = api.category || '';
+                document.getElementById('apiUrl').value = api.url || '';
                 document.getElementById('apiKey').value = api.apiKey;
                 document.getElementById('apiNotes').value = api.notes || '';
                 document.getElementById('apiModal').classList.add('active');
@@ -870,6 +896,7 @@
             const filtered = allAPIs.filter(api => 
                 api.name.toLowerCase().includes(search) || 
                 (api.url && api.url.toLowerCase().includes(search)) ||
+                (api.category && api.category.toLowerCase().includes(search)) ||
                 (api.notes && api.notes.toLowerCase().includes(search))
             );
             renderAPIs(filtered);
@@ -926,7 +953,7 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') closeModal();
             if (e.key === 'Enter' && document.getElementById('apiModal').classList.contains('active')) {
-                if (document.getElementById('apiName').value && document.getElementById('apiUrl').value && document.getElementById('apiKey').value) {
+                if (document.getElementById('apiName').value && document.getElementById('apiKey').value) {
                     handleSaveAPI(e);
                 }
             }

@@ -116,8 +116,9 @@ function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS api_entries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        url TEXT NOT NULL,
+        url TEXT,
         apiKey TEXT NOT NULL,
+        category TEXT,
         notes TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -132,6 +133,45 @@ function initializeDatabase() {
         UPDATE api_entries SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
       END;
     `, err => { if (err) console.error('Error creating trigger:', err); });
+
+    // Migration: url darf NULL sein (war zuvor NOT NULL) + category-Spalte
+    db.all(`PRAGMA table_info(api_entries)`, (err, cols) => {
+      if (err) return console.error('Error reading schema:', err);
+
+      // 1) category-Spalte ergänzen, falls sie fehlt
+      if (!cols.find(c => c.name === 'category')) {
+        console.log('Migrating schema: adding category column...');
+        db.run(`ALTER TABLE api_entries ADD COLUMN category TEXT`);
+      }
+
+      // 2) url NOT NULL -> nullable (Tabelle neu aufbauen)
+      const urlCol = cols.find(c => c.name === 'url');
+      if (urlCol && urlCol.notnull === 1) {
+        console.log('Migrating schema: making url column nullable...');
+        db.exec(`
+          CREATE TABLE api_entries_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            url TEXT,
+            apiKey TEXT NOT NULL,
+            category TEXT,
+            notes TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(name, url)
+          );
+          INSERT INTO api_entries_new (id, name, url, apiKey, category, notes, created_at, updated_at)
+            SELECT id, name, url, apiKey, category, notes, created_at, updated_at FROM api_entries;
+          DROP TABLE api_entries;
+          ALTER TABLE api_entries_new RENAME TO api_entries;
+          CREATE TRIGGER IF NOT EXISTS update_timestamp
+            AFTER UPDATE ON api_entries
+            BEGIN
+              UPDATE api_entries SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+            END;
+        `);
+      }
+    });
 
     console.log('Database schema initialized');
   });
@@ -149,7 +189,7 @@ app.get('/api/entries', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
 
     db.all(
-      `SELECT id, name, url, apiKey, notes, created_at, updated_at
+      `SELECT id, name, url, apiKey, category, notes, created_at, updated_at
        FROM api_entries ORDER BY created_at DESC LIMIT ? OFFSET ?`,
       [limit, offset],
       (err, rows) => {
@@ -163,7 +203,7 @@ app.get('/api/entries', (req, res) => {
 // GET single entry
 app.get('/api/entries/:id', (req, res) => {
   db.get(
-    `SELECT id, name, url, apiKey, notes, created_at, updated_at FROM api_entries WHERE id = ?`,
+    `SELECT id, name, url, apiKey, category, notes, created_at, updated_at FROM api_entries WHERE id = ?`,
     [req.params.id],
     (err, row) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -175,16 +215,16 @@ app.get('/api/entries/:id', (req, res) => {
 
 // POST create entry
 app.post('/api/entries', (req, res) => {
-  const { name, url, apiKey, notes } = req.body;
-  if (!name || !url || !apiKey) {
-    return res.status(400).json({ error: 'Missing required fields: name, url, apiKey' });
+  const { name, url, apiKey, category, notes } = req.body;
+  if (!name || !apiKey) {
+    return res.status(400).json({ error: 'Missing required fields: name, apiKey' });
   }
   db.run(
-    `INSERT INTO api_entries (name, url, apiKey, notes) VALUES (?, ?, ?, ?)`,
-    [name, url, apiKey, notes || ''],
+    `INSERT INTO api_entries (name, url, apiKey, category, notes) VALUES (?, ?, ?, ?, ?)`,
+    [name, url || null, apiKey, category || null, notes || ''],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
-      res.json({ id: this.lastID, name, url, apiKey, notes: notes || '',
+      res.json({ id: this.lastID, name, url: url || null, apiKey, category: category || null, notes: notes || '',
         created_at: new Date().toISOString(), updated_at: new Date().toISOString() });
     }
   );
@@ -192,17 +232,17 @@ app.post('/api/entries', (req, res) => {
 
 // PUT update entry
 app.put('/api/entries/:id', (req, res) => {
-  const { name, url, apiKey, notes } = req.body;
-  if (!name || !url || !apiKey) {
-    return res.status(400).json({ error: 'Missing required fields: name, url, apiKey' });
+  const { name, url, apiKey, category, notes } = req.body;
+  if (!name || !apiKey) {
+    return res.status(400).json({ error: 'Missing required fields: name, apiKey' });
   }
   db.run(
-    `UPDATE api_entries SET name = ?, url = ?, apiKey = ?, notes = ? WHERE id = ?`,
-    [name, url, apiKey, notes || '', req.params.id],
+    `UPDATE api_entries SET name = ?, url = ?, apiKey = ?, category = ?, notes = ? WHERE id = ?`,
+    [name, url || null, apiKey, category || null, notes || '', req.params.id],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       if (this.changes === 0) return res.status(404).json({ error: 'Entry not found' });
-      res.json({ id: parseInt(req.params.id), name, url, apiKey, notes: notes || '',
+      res.json({ id: parseInt(req.params.id), name, url: url || null, apiKey, category: category || null, notes: notes || '',
         updated_at: new Date().toISOString() });
     }
   );
@@ -220,7 +260,7 @@ app.delete('/api/entries/:id', (req, res) => {
 // GET export
 app.get('/api/export', (req, res) => {
   db.all(
-    `SELECT name, url, apiKey, notes FROM api_entries ORDER BY created_at DESC`,
+    `SELECT name, url, apiKey, category, notes FROM api_entries ORDER BY created_at DESC`,
     [],
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -229,7 +269,7 @@ app.get('/api/export', (req, res) => {
   );
 });
 
-// POST import-text — semikolon-getrenntes Array: ["Name;URL;KEY;Notiz"]
+// POST import-text — semikolon-getrenntes Array: ["Name;URL;KEY;Category;Notiz"]
 app.post('/api/import-text', (req, res) => {
   const lines = req.body;
   if (!Array.isArray(lines)) {
@@ -239,12 +279,13 @@ app.post('/api/import-text', (req, res) => {
   const entries = lines.map(line => {
     if (typeof line !== 'string') return null;
     const parts = line.trim().split(';');
-    const name   = (parts[0] || '').trim();
-    const url    = (parts[1] || '').trim();
-    const apiKey = (parts[2] || '').trim();
-    const notes  = parts.slice(3).join(';').trim();
-    if (!name || !url || !apiKey) return null;
-    return { name, url, apiKey, notes };
+    const name     = (parts[0] || '').trim();
+    const url      = (parts[1] || '').trim();
+    const apiKey   = (parts[2] || '').trim();
+    const category = (parts[3] || '').trim();
+    const notes    = parts.slice(4).join(';').trim();
+    if (!name || !apiKey) return null;
+    return { name, url: url || null, apiKey, category: category || null, notes };
   }).filter(Boolean);
 
   if (entries.length === 0) {
@@ -252,12 +293,12 @@ app.post('/api/import-text', (req, res) => {
   }
 
   const stmt = db.prepare(
-    `INSERT OR IGNORE INTO api_entries (name, url, apiKey, notes) VALUES (?, ?, ?, ?)`
+    `INSERT OR IGNORE INTO api_entries (name, url, apiKey, category, notes) VALUES (?, ?, ?, ?, ?)`
   );
 
   db.serialize(() => {
     try {
-      entries.forEach(e => stmt.run(e.name, e.url, e.apiKey, e.notes || ''));
+      entries.forEach(e => stmt.run(e.name, e.url, e.apiKey, e.category, e.notes || ''));
       stmt.finalize(err => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true, imported: entries.length });
@@ -269,25 +310,25 @@ app.post('/api/import-text', (req, res) => {
   });
 });
 
-// POST import-json — direktes JSON-Array: [{ name, url, apiKey, notes }]
+// POST import-json — direktes JSON-Array: [{ name, url, apiKey, category, notes }]
 app.post('/api/import', (req, res) => {
   const entries = req.body;
   if (!Array.isArray(entries)) {
     return res.status(400).json({ error: 'Request body must be an array of objects' });
   }
 
-  const valid = entries.filter(e => e && e.name && e.url && e.apiKey);
+  const valid = entries.filter(e => e && e.name && e.apiKey);
   if (valid.length === 0) {
     return res.status(400).json({ error: 'No valid entries found' });
   }
 
   const stmt = db.prepare(
-    `INSERT OR IGNORE INTO api_entries (name, url, apiKey, notes) VALUES (?, ?, ?, ?)`
+    `INSERT OR IGNORE INTO api_entries (name, url, apiKey, category, notes) VALUES (?, ?, ?, ?, ?)`
   );
 
   db.serialize(() => {
     try {
-      valid.forEach(e => stmt.run(e.name, e.url, e.apiKey, e.notes || ''));
+      valid.forEach(e => stmt.run(e.name, e.url || null, e.apiKey, e.category || null, e.notes || ''));
       stmt.finalize(err => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true, imported: valid.length });
