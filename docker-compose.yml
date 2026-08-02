@@ -10,6 +10,11 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DB_PATH=/data/highfish.db
+      # Auth: Mindestens API_KEY ODER AUTH_USER+AUTH_PASSWORD setzen!
+      - API_KEY=${API_KEY:-}
+      - AUTH_USER=${AUTH_USER:-}
+      - AUTH_PASSWORD=${AUTH_PASSWORD:-}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     volumes:
       - highfish-data:/data
     restart: unless-stopped

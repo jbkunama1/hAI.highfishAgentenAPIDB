@@ -19,12 +19,19 @@ COPY highfishapidblogo.png ./
 # Create data directory for SQLite database
 RUN mkdir -p /data
 
+# Create non-root user and set permissions
+RUN adduser -D node && \
+    chown -R node:node /app /data
+
 # Expose port
 EXPOSE 3000
 
 # Health check using curl
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Switch to non-root user
+USER node
 
 # Start application
 CMD ["npm", "start"]

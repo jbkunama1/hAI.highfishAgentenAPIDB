@@ -11,12 +11,21 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
   : ['http://localhost:3000'];
 
+// API-Authentifizierung per Bearer-Token oder Basic Auth.
+// Der Key wird über die Umgebungsvariable API_KEY bzw. die Auth-Kombination
+// AUTH_USER/AUTH_PASSWORD konfiguriert.
+const API_KEY = process.env.API_KEY;
+const AUTH_USER = process.env.AUTH_USER;
+const AUTH_PASSWORD = process.env.AUTH_PASSWORD;
+
 const DB_PATH = process.env.DB_PATH || (process.env.NODE_ENV === 'production' ? '/data/highfish.db' : './data/highfish.db');
 
 // Middleware
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(bodyParser.json({ limit: '1mb' }));
-app.use(express.static(path.join(__dirname, '.')));
+
+// Serve only the logo image statically (keeps server.js, package.json, etc. private)
+app.use('/highfishapidblogo.png', express.static(path.join(__dirname, 'highfishapidblogo.png')));
 
 // Rate limiting (max 100 req/min per IP, auto-cleanup)
 const rateLimit = {};
@@ -38,6 +47,49 @@ app.use((req, res, next) => {
   }
   rateLimit[ip].push(now);
   next();
+});
+
+// --- API-Authentifizierung ---
+// Schützt alle /api-Routen außer /api/health.
+// Konfiguration:
+//   - Bearer-Token: Header "Authorization: Bearer <API_KEY>"
+//   - Basic Auth:   Header "Authorization: Basic base64(user:password)"
+//   - Als Fallback akzeptiert ein Query-Parameter ?api_key=<API_KEY> (nur wenn API_KEY gesetzt)
+function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization || '';
+
+  if (API_KEY) {
+    const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (bearerMatch && bearerMatch[1] === API_KEY) return next();
+
+    // Query-Parameter-Fallback (nützlich für einfache Client-Integration)
+    if (req.query.api_key === API_KEY) return next();
+  }
+
+  if (AUTH_USER && AUTH_PASSWORD) {
+    const basicMatch = authHeader.match(/^Basic\s+(.+)$/i);
+    if (basicMatch) {
+      try {
+        const decoded = Buffer.from(basicMatch[1], 'base64').toString('utf8');
+        const separatorIndex = decoded.indexOf(':');
+        if (separatorIndex !== -1) {
+          const user = decoded.slice(0, separatorIndex);
+          const pass = decoded.slice(separatorIndex + 1);
+          if (user === AUTH_USER && pass === AUTH_PASSWORD) return next();
+        }
+      } catch (e) {
+        // ungültiges Basic-Auth-Format -> Zugriff verweigern
+      }
+    }
+  }
+
+  res.setHeader('WWW-Authenticate', 'Basic realm="HighFish API DB"');
+  return res.status(401).json({ error: 'Unauthorized' });
+}
+
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health') return next();
+  requireAuth(req, res, next);
 });
 
 // Ensure data directory exists
