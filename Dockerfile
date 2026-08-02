@@ -3,7 +3,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install build dependencies for sqlite3
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ curl
 
 # Copy package files
 COPY package*.json ./
