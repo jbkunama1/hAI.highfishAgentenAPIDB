@@ -1,0 +1,23 @@
+services:
+  highfish-api-db:
+    image: ghcr.io/jbkunama1/hai.highfishagentenapidb:latest
+    container_name: highfish-api-db
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_PATH=/data/highfish.db
+      # Auth: Mindestens API_KEY ODER AUTH_USER+AUTH_PASSWORD setzen!
+      - API_KEY=${API_KEY:-}
+      - AUTH_USER=${AUTH_USER:-}
+      - AUTH_PASSWORD=${AUTH_PASSWORD:-}
+      # CORS-Whitelist an deine tatsächliche Domain anpassen
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
+    volumes:
+      - highfish-data:/data
+    restart: unless-stopped
+
+volumes:
+  highfish-data:
+    driver: local
