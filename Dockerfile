@@ -19,9 +19,9 @@ COPY highfishapidblogo.png ./
 # Create data directory for SQLite database
 RUN mkdir -p /data
 
-# Create non-root user and set permissions
-RUN adduser -D node && \
-    chown -R node:node /app /data
+# Ensure non-root user owns project and data directories
+# (node user is provided by the node:18-alpine base image)
+RUN chown -R node:node /app /data
 
 # Expose port
 EXPOSE 3000
