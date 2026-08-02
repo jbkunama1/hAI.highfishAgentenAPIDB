@@ -22,6 +22,7 @@
   - [Health-Check](#health-check)
 - [Datenstruktur](#datenstruktur)
 - [Umgebungsvariablen](#umgebungsvariablen)
+  - [Authentifizierung](#authentifizierung)
 - [Lizenz](#lizenz)
 
 ---
@@ -38,7 +39,9 @@
 - ✅ **JSON-Export** aller Einträge
 - ✅ **Text-Import** (semikolongetrennt, Batch)
 - ✅ Rate Limiting (100 Anfragen/min pro IP)
-- ✅ Docker-ready (inkl. Volume-Persistenz)
+- ✅ **Authentifizierung** auf allen API-Endpunkten (Bearer-Token oder Basic Auth)
+- ✅ **CI/CD** – automatischer Docker-Build per GitHub Actions (bei Push + manuell)
+- ✅ Docker-ready (inkl. Volume-Persistenz, läuft als non-root)
 - ✅ Integriertes Web-UI
 
 ---
@@ -53,23 +56,30 @@ cd hAI.highfishAgentenAPIDB
 # Abhängigkeiten installieren
 npm install
 
-# Entwicklungsserver starten (Port 3000)
-node server.js
+# Entwicklungsserver starten (Port 3000) – mit API-Key absichern
+API_KEY=geheimer-schluessel node server.js
 ```
 
 Aufruf im Browser: `http://localhost:3000`
+
+> Im Web-UI loggst du dich mit deinem **API-Key** ein (der eingegebene Wert wird gegen das Backend geprüft). Setze dafür vor dem Start die Env-Variable `API_KEY` (siehe [umgebungsvariablen](#umgebungsvariablen)).
 
 ---
 
 ## Docker-Deployment
 
+> ⚠️ Setze in Produktion immer einen **API-Key**, sonst sind die Endpunkte ungeschützt (siehe [Authentifizierung](#authentifizierung)).
+
 ### Mit docker-compose (empfohlen)
 
 ```bash
+# Optional: .env-Datei mit Zugangsdaten anlegen
+echo "API_KEY=geheimer-schluessel" > .env
+
 docker compose up -d
 ```
 
-Die Datenbank wird im Volume `highfish-data` persistiert (`/data/highfish.db` im Container).
+Die Datenbank wird im Volume `highfish-data` persistiert (`/data/highfish.db` im Container). Die Variablen aus `.env` werden von `docker-compose.yml` automatisch übernommen (`API_KEY`, `AUTH_USER`, `AUTH_PASSWORD`, `ALLOWED_ORIGINS`).
 
 ### Manuell
 
@@ -77,10 +87,18 @@ Die Datenbank wird im Volume `highfish-data` persistiert (`/data/highfish.db` im
 docker build -t highfish-api-db .
 docker run -d \
   -p 3000:3000 \
+  -e API_KEY=geheimer-schluessel \
   -v highfish-data:/data \
   --name highfish-api-db \
   highfish-api-db
 ```
+
+### CI/CD – automatischer Docker-Build
+
+Ein [GitHub Actions Workflow](.github/workflows/docker-build.yml) baut das Image und pusht es bei jedem Push auf `main` sowie manuell nach **GHCR** (`ghcr.io/jbkunama1/hAI.highfishAgentenAPIDB`) als `latest` und Commit-SHA:
+
+- **Automatisch:** bei Push auf `main`
+- **Manuell:** *Actions → Docker Build → Run workflow*
 
 ### In Portainer
 
@@ -91,6 +109,12 @@ Stack aus `docker-compose.yml` importieren oder direkt deployen.
 ## API-Referenz
 
 Basis-URL: `http://<host>:3000`
+
+> **Authentifizierung:** Alle Endpunkte außer `/api/health` erfordern einen Auth-Header:
+> - **Bearer-Token:** `Authorization: Bearer <API_KEY>`
+> - **Basic Auth:** `Authorization: Basic base64(Benutzer:Passwort)`
+>
+> Ohne gültigen Key antwortet der Server mit `401 Unauthorized`.
 
 ---
 
