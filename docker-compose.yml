@@ -1,9 +1,15 @@
 version: '3.8'
 
+networks:
+  highfishNetwork:
+    driver: bridge
+
 services:
   highfish-api-db:
     build: .
     container_name: highfish-api-db
+    networks:
+      - highfishNetwork
     ports:
       - "3000:3000"
     environment:
