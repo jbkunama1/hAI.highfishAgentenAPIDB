@@ -5,11 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HighFish API DB - API Management</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --cat-llm: #f87171;
+            --cat-picture: #fb923c;
+            --cat-media: #fbbf24;
+            --cat-video: #34d399;
+            --cat-security: #818cf8;
+            --cat-github: #a78bfa;
+            --cat-google: #f472b6;
+            --cat-other: #94a3b8;
         }
+
+        .category-badge {
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 11px;
+            white-space: nowrap;
+            color: #fff;
+            background-color: #64748b;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .cat-LLM { background-color: var(--cat-llm); }
+        .cat-Picture { background-color: var(--cat-picture); }
+        .cat-Media { background-color: var(--cat-media); }
+        .cat-Video { background-color: var(--cat-video); }
+        .cat-Security { background-color: var(--cat-security); }
+        .cat-Github { background-color: var(--cat-github); }
+        .cat-Google { background-color: var(--cat-google); }
+        .cat-Other { background-color: var(--cat-other); }
+        .cat-MCP { background-color: #2dd4bf; }
+        .cat-Mail { background-color: #38bdf8; }
+        .cat-Finance { background-color: #4ade80; }
+        .cat-Bot { background-color: #c084fc; }
+        .cat-HomeAutomation { background-color: #fda4af; }
+        .cat-9router { background-color: #facc15; }
+        .cat-default { background-color: #64748b; }
+
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
@@ -81,6 +113,145 @@
             background-color: #dc2626;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .hamburger-btn {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            width: 44px;
+            height: 44px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 8px;
+            cursor: pointer;
+            padding: 10px;
+            flex-shrink: 0;
+        }
+
+        .hamburger-btn span {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: #38bdf8;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        .drawer-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 998;
+        }
+
+        .drawer-overlay.open {
+            display: block;
+        }
+
+        .drawer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 280px;
+            max-width: 80vw;
+            background: #1e293b;
+            z-index: 999;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            padding: 20px;
+            border-right: 1px solid rgba(56, 189, 248, 0.2);
+            overflow-y: auto;
+        }
+
+        .drawer.open {
+            transform: translateX(0);
+        }
+
+        .drawer-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 24px;
+            cursor: pointer;
+            float: right;
+            padding: 0;
+        }
+
+        .drawer-close:hover {
+            color: #f1f5f9;
+        }
+
+        .drawer ul {
+            list-style: none;
+            margin-top: 30px;
+            clear: both;
+        }
+
+        .drawer ul li {
+            margin-bottom: 5px;
+        }
+
+        .drawer ul li a {
+            display: block;
+            padding: 12px 14px;
+            border-radius: 8px;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .drawer ul li a:hover {
+            background: rgba(56, 189, 248, 0.1);
+            color: #38bdf8;
+        }
+
+        .export-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .export-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            min-width: 180px;
+            background: #1e293b;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            overflow: hidden;
+        }
+
+        .export-menu.open {
+            display: block;
+        }
+
+        .export-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            padding: 12px 16px;
+            color: #e2e8f0;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 0;
+        }
+
+        .export-menu button:hover {
+            background: rgba(56, 189, 248, 0.1);
         }
 
         .login-screen {
@@ -320,25 +491,73 @@
             }
 
             header {
-                flex-direction: column;
-                gap: 15px;
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
             }
 
             .header-content {
                 width: 100%;
-                justify-content: space-between;
+                justify-content: flex-start;
+                gap: 10px;
+            }
+
+            .hamburger-btn {
+                display: flex;
             }
 
             h1 {
-                font-size: 20px;
+                font-size: 18px;
             }
 
             .controls {
                 flex-direction: column;
             }
 
+            .controls button,
+            .controls .search-box {
+                width: 100%;
+            }
+
+            .export-dropdown {
+                width: 100%;
+            }
+
+            .export-dropdown > button {
+                width: 100%;
+            }
+
+            .export-menu {
+                position: static;
+                margin-top: 4px;
+                width: 100%;
+            }
+
             button {
                 width: 100%;
+            }
+
+            .logo {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 12px;
+            }
+
+            .stat-card {
+                min-width: 120px;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+
+            .card-actions {
+                flex-direction: column;
             }
         }
 
@@ -539,6 +758,9 @@
             <!-- Header -->
             <header>
                 <div class="header-content">
+                    <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menü öffnen" onclick="toggleMenu()">
+                        <span></span><span></span><span></span>
+                    </button>
                     <div class="logo">
                         <img src="./highfishapidblogo.png" alt="HighFish API DB Logo">
                     </div>
@@ -546,6 +768,18 @@
                 </div>
                 <button class="logout-btn" onclick="handleLogout()">Abmelden</button>
             </header>
+
+            <!-- Drawer / Mobile Menu -->
+            <div class="drawer-overlay" id="drawerOverlay" onclick="closeMenu()"></div>
+            <nav class="drawer" id="drawer" aria-label="Mobile Navigation">
+                <button class="drawer-close" onclick="closeMenu()" aria-label="Menü schließen">✕</button>
+                <ul>
+                    <li><a href="#" onclick="openAddModal(); closeMenu();">＋ Neue API</a></li>
+                    <li><a href="#" onclick="exportAPIs('json'); closeMenu();">📄 Als JSON exportieren</a></li>
+                    <li><a href="#" onclick="exportAPIs('md'); closeMenu();">📝 Als Markdown exportieren</a></li>
+                    <li><a href="#" onclick="exportAPIs('pdf'); closeMenu();">📕 Als PDF exportieren</a></li>
+                </ul>
+            </nav>
 
             <!-- Stats -->
             <div class="stats">
@@ -565,7 +799,14 @@
             <!-- Controls -->
             <div class="controls">
                 <button class="btn-primary" onclick="openAddModal()">+ Neue API</button>
-                <button class="btn-secondary" onclick="exportAPIs()">📥 Exportieren</button>
+                <div class="export-dropdown">
+                    <button class="btn-secondary" onclick="toggleExportMenu()">📥 Exportieren ▾</button>
+                    <div class="export-menu" id="exportMenu">
+                        <button onclick="exportAPIs('json')">📄 JSON</button>
+                        <button onclick="exportAPIs('md')">📝 Markdown</button>
+                        <button onclick="exportAPIs('pdf')">📕 PDF</button>
+                    </div>
+                </div>
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="Nach API-Name suchen..." onkeyup="filterAPIs()">
                 </div>
@@ -782,7 +1023,7 @@
                 <div class="api-card">
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
                         <div class="api-name">${escapeHtml(api.name)}</div>
-                        ${api.category ? `<span style="background:#1e293b; border:1px solid #334155; color:#93c5fd; padding:2px 10px; border-radius:9999px; font-size:11px; white-space:nowrap;">${escapeHtml(api.category)}</span>` : ''}
+                        ${api.category ? `<span class="category-badge cat-${escapeHtml(api.category)}">${escapeHtml(api.category)}</span>` : ''}
                     </div>
                     ${api.url ? `<div style="color: #94a3b8; font-size: 12px; margin-bottom: 10px;">
                         <strong>URL:</strong> <code style="background: #0f172a; padding: 2px 4px; border-radius: 3px;">${escapeHtml(api.url)}</code>
@@ -902,25 +1143,123 @@
             renderAPIs(filtered);
         }
 
-        async function exportAPIs() {
+        function toggleExportMenu() {
+            document.getElementById('exportMenu').classList.toggle('open');
+        }
+
+        function toggleMenu() {
+            document.getElementById('drawer').classList.toggle('open');
+            document.getElementById('drawerOverlay').classList.toggle('open');
+        }
+
+        function closeMenu() {
+            document.getElementById('drawer').classList.remove('open');
+            document.getElementById('drawerOverlay').classList.remove('open');
+        }
+
+        // Exportieren: JSON, Markdown oder PDF
+        async function exportAPIs(format) {
             try {
                 const response = await fetch(`${API_BASE}/export`, { headers: getAuthHeaders() });
                 if (!response.ok) throw new Error('Failed to export');
                 const data = await response.json();
-                
-                const dataStr = JSON.stringify(data, null, 2);
-                const blob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `highfish-apis-${new Date().toISOString().split('T')[0]}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
+
+                const dateStr = new Date().toISOString().split('T')[0];
+                const filePrefix = `highfish-apis-${dateStr}`;
+
+                if (format === 'md') {
+                    const md = buildMarkdown(data);
+                    downloadBlob(md, `${filePrefix}.md`, 'text/markdown');
+                } else if (format === 'pdf') {
+                    await exportPDF(data, filePrefix);
+                    return;
+                } else {
+                    const dataStr = JSON.stringify(data, null, 2);
+                    downloadBlob(dataStr, `${filePrefix}.json`, 'application/json');
+                }
                 showSuccess('Daten exportiert');
             } catch (error) {
                 console.error('Error:', error);
                 showLoginError('Fehler beim Exportieren. Bitte versuchen Sie es später erneut.');
             }
+        }
+
+        function downloadBlob(content, filename, mime) {
+            const blob = new Blob([content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function buildMarkdown(data) {
+            const entries = (data.data || (Array.isArray(data) ? data : [])) || [];
+            let md = `# HighFish API DB\n\n**Exportiert:** ${new Date().toLocaleString('de-DE')}\n\n**Anzahl APIs:** ${entries.length}\n\n---\n\n`;
+            entries.forEach(api => {
+                md += `## ${api.name}\n\n`;
+                if (api.category) md += `- **Kategorie:** ${api.category}\n`;
+                if (api.url) md += `- **URL:** ${api.url}\n`;
+                if (api.apiKey) md += `- **API-Key:** \`${api.apiKey}\`\n`;
+                if (api.notes) md += `- **Notizen:** ${api.notes}\n`;
+                md += `\n---\n\n`;
+            });
+            return md;
+        }
+
+        async function exportPDF(data, filePrefix) {
+            // jsPDF per CDN laden, falls noch nicht vorhanden
+            if (typeof window.jspdf === 'undefined') {
+                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const entries = (data.data || (Array.isArray(data) ? data : [])) || [];
+
+            doc.setFontSize(18);
+            doc.text('HighFish API DB', 14, 20);
+            doc.setFontSize(11);
+            doc.text(`Exportiert: ${new Date().toLocaleString('de-DE')}`, 14, 28);
+            doc.text(`Anzahl APIs: ${entries.length}`, 14, 34);
+
+            let y = 44;
+            doc.setFontSize(12);
+            entries.forEach(api => {
+                if (y > 270) {
+                    doc.addPage();
+                    y = 20;
+                }
+                doc.setFont('helvetica', 'bold');
+                doc.text(api.name, 14, y);
+                y += 6;
+                doc.setFont('helvetica', 'normal');
+                if (api.category) { doc.text(`Kategorie: ${api.category}`, 14, y); y += 5; }
+                if (api.url) { doc.text(`URL: ${api.url}`, 14, y); y += 5; }
+                if (api.apiKey) { doc.text(`API-Key: ${api.apiKey}`, 14, y); y += 5; }
+                if (api.notes) {
+                    const notes = doc.splitTextToSize(api.notes, 180);
+                    doc.text('Notizen: ' + notes[0], 14, y);
+                    for (let i = 1; i < notes.length; i++) {
+                        y += 5;
+                        if (y > 280) { doc.addPage(); y = 20; }
+                        doc.text(notes[i], 14, y);
+                    }
+                }
+                y += 8;
+            });
+
+            doc.save(`${filePrefix}.pdf`);
+        }
+
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+                document.head.appendChild(script);
+            });
         }
 
         function updateStats() {
@@ -956,6 +1295,14 @@
                 if (document.getElementById('apiName').value && document.getElementById('apiKey').value) {
                     handleSaveAPI(e);
                 }
+            }
+        });
+
+        // Export-Menü schließen, wenn außerhalb geklickt wird
+        document.addEventListener('click', (e) => {
+            const dropdown = document.querySelector('.export-dropdown');
+            if (dropdown && !dropdown.contains(e.target)) {
+                document.getElementById('exportMenu').classList.remove('open');
             }
         });
     </script>
