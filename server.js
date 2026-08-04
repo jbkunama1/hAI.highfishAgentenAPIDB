@@ -54,37 +54,57 @@ app.use((req, res, next) => {
 // Konfiguration:
 //   - Bearer-Token: Header "Authorization: Bearer <API_KEY>"
 //   - Basic Auth:   Header "Authorization: Basic base64(user:password)"
-//   - Als Fallback akzeptiert ein Query-Parameter ?api_key=<API_KEY> (nur wenn API_KEY gesetzt)
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization || '';
 
-  if (API_KEY) {
-    const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
-    if (bearerMatch && bearerMatch[1] === API_KEY) return next();
-
-    // Query-Parameter-Fallback (nützlich für einfache Client-Integration)
-    if (req.query.api_key === API_KEY) return next();
-  }
-
-  if (AUTH_USER && AUTH_PASSWORD) {
-    const basicMatch = authHeader.match(/^Basic\s+(.+)$/i);
-    if (basicMatch) {
-      try {
-        const decoded = Buffer.from(basicMatch[1], 'base64').toString('utf8');
-        const separatorIndex = decoded.indexOf(':');
-        if (separatorIndex !== -1) {
-          const user = decoded.slice(0, separatorIndex);
-          const pass = decoded.slice(separatorIndex + 1);
-          if (user === AUTH_USER && pass === AUTH_PASSWORD) return next();
-        }
-      } catch (e) {
-        // ungültiges Basic-Auth-Format -> Zugriff verweigern
+    // 1. Master API_KEY Check (Admin)
+    if (API_KEY) {
+      const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+      if (bearerMatch && bearerMatch[1] === API_KEY) {
+        req.user = { id: 0, username: 'admin', role: 'admin' };
+        return next();
       }
     }
-  }
 
-  res.setHeader('WWW-Authenticate', 'Basic realm="HighFish API DB"');
-  return res.status(401).json({ error: 'Unauthorized' });
+    // 2. Legacy Basic Auth Check (Admin)
+    if (AUTH_USER && AUTH_PASSWORD) {
+      const basicMatch = authHeader.match(/^Basic\s+(.+)$/i);
+      if (basicMatch) {
+        try {
+          const decoded = Buffer.from(basicMatch[1], 'base64').toString('utf8');
+          const separatorIndex = decoded.indexOf(':');
+          if (separatorIndex !== -1) {
+            const user = decoded.slice(0, separatorIndex);
+            const pass = decoded.slice(separatorIndex + 1);
+            if (user === AUTH_USER && pass === AUTH_PASSWORD) {
+              req.user = { id: 0, username: 'admin', role: 'admin' };
+              return next();
+            }
+          }
+        } catch (e) { /* ignore */ }
+      }
+    }
+
+    // 3. Database User Check (Bearer Token)
+    const bearerMatch = authHeader.match(/^Bearer\s+(.+)$/i);
+    if (bearerMatch) {
+      const token = bearerMatch[1];
+      db.get('SELECT id, username, role FROM users WHERE api_key = ?', [token], (err, user) => {
+        if (err) return res.status(500).json({ error: 'Database auth error' });
+        if (user) {
+          req.user = user;
+          return next();
+        }
+        return reject();
+      });
+    } else {
+      reject();
+    }
+
+    function reject() {
+      res.setHeader('WWW-Authenticate', 'Basic realm="HighFish API DB"');
+      res.status(401).json({ error: 'Unauthorized' });
+    }
 }
 
 app.use('/api', (req, res, next) => {
@@ -112,6 +132,7 @@ const db = new sqlite3.Database(DB_PATH, (err) => {
 
 function initializeDatabase() {
   db.serialize(() => {
+    // Create api_entries table (with user_id)
     db.run(`
       CREATE TABLE IF NOT EXISTS api_entries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -120,12 +141,25 @@ function initializeDatabase() {
         apiKey TEXT NOT NULL,
         category TEXT,
         notes TEXT,
+        user_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(name, url)
       )
-    `, err => { if (err) console.error('Error creating table:', err); });
+    `, err => { if (err) console.error('Error creating api_entries table:', err); });
 
+    // Create users table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        api_key TEXT NOT NULL UNIQUE,
+        role TEXT NOT NULL DEFAULT 'user',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `, err => { if (err) console.error('Error creating users table:', err); });
+
+    // Trigger to update timestamps
     db.run(`
       CREATE TRIGGER IF NOT EXISTS update_timestamp
       AFTER UPDATE ON api_entries
@@ -134,17 +168,20 @@ function initializeDatabase() {
       END;
     `, err => { if (err) console.error('Error creating trigger:', err); });
 
-    // Migration: url darf NULL sein (war zuvor NOT NULL) + category-Spalte
+    // Migration: add missing columns and make url nullable
     db.all(`PRAGMA table_info(api_entries)`, (err, cols) => {
       if (err) return console.error('Error reading schema:', err);
 
-      // 1) category-Spalte ergänzen, falls sie fehlt
       if (!cols.find(c => c.name === 'category')) {
         console.log('Migrating schema: adding category column...');
         db.run(`ALTER TABLE api_entries ADD COLUMN category TEXT`);
       }
 
-      // 2) url NOT NULL -> nullable (Tabelle neu aufbauen)
+      if (!cols.find(c => c.name === 'user_id')) {
+        console.log('Migrating schema: adding user_id column...');
+        db.run(`ALTER TABLE api_entries ADD COLUMN user_id INTEGER`);
+      }
+
       const urlCol = cols.find(c => c.name === 'url');
       if (urlCol && urlCol.notnull === 1) {
         console.log('Migrating schema: making url column nullable...');
@@ -156,12 +193,13 @@ function initializeDatabase() {
             apiKey TEXT NOT NULL,
             category TEXT,
             notes TEXT,
+            user_id INTEGER,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(name, url)
           );
-          INSERT INTO api_entries_new (id, name, url, apiKey, category, notes, created_at, updated_at)
-            SELECT id, name, url, apiKey, category, notes, created_at, updated_at FROM api_entries;
+          INSERT INTO api_entries_new (id, name, url, apiKey, category, notes, user_id, created_at, updated_at)
+            SELECT id, name, url, apiKey, category, notes, user_id, created_at, updated_at FROM api_entries;
           DROP TABLE api_entries;
           ALTER TABLE api_entries_new RENAME TO api_entries;
           CREATE TRIGGER IF NOT EXISTS update_timestamp
@@ -185,13 +223,17 @@ app.get('/api/entries', (req, res) => {
   const page  = Math.max(parseInt(req.query.page)  || 1, 1);
   const offset = (page - 1) * limit;
 
-  db.get(`SELECT COUNT(*) as total FROM api_entries`, [], (err, countRow) => {
+  const isUser = req.user.role === 'user';
+  const whereClause = isUser ? 'WHERE user_id = ?' : '';
+  const params = isUser ? [req.user.id] : [];
+
+  db.get(`SELECT COUNT(*) as total FROM api_entries ${whereClause}`, params, (err, countRow) => {
     if (err) return res.status(500).json({ error: err.message });
 
     db.all(
-      `SELECT id, name, url, apiKey, category, notes, created_at, updated_at
-       FROM api_entries ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-      [limit, offset],
+      `SELECT id, name, url, apiKey, category, notes, user_id, created_at, updated_at
+       FROM api_entries ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      [...params, limit, offset],
       (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ total: countRow.total, page, limit, data: rows });
@@ -202,9 +244,12 @@ app.get('/api/entries', (req, res) => {
 
 // GET single entry
 app.get('/api/entries/:id', (req, res) => {
+  const isAdmin = req.user.role !== 'user';
+  const whereClause = isAdmin ? 'WHERE id = ?' : 'WHERE id = ? AND user_id = ?';
+  const params = isAdmin ? [req.params.id] : [req.params.id, req.user.id];
   db.get(
-    `SELECT id, name, url, apiKey, category, notes, created_at, updated_at FROM api_entries WHERE id = ?`,
-    [req.params.id],
+    `SELECT id, name, url, apiKey, category, notes, user_id, created_at, updated_at FROM api_entries ${whereClause}`,
+    params,
     (err, row) => {
       if (err) return res.status(500).json({ error: err.message });
       if (!row) return res.status(404).json({ error: 'Entry not found' });
@@ -220,8 +265,8 @@ app.post('/api/entries', (req, res) => {
     return res.status(400).json({ error: 'Missing required fields: name, apiKey' });
   }
   db.run(
-    `INSERT INTO api_entries (name, url, apiKey, category, notes) VALUES (?, ?, ?, ?, ?)`,
-    [name, url || null, apiKey, category || null, notes || ''],
+    `INSERT INTO api_entries (name, url, apiKey, category, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`,
+    [name, url || null, apiKey, category || null, notes || '', req.user.id],
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ id: this.lastID, name, url: url || null, apiKey, category: category || null, notes: notes || '',
@@ -236,9 +281,13 @@ app.put('/api/entries/:id', (req, res) => {
   if (!name || !apiKey) {
     return res.status(400).json({ error: 'Missing required fields: name, apiKey' });
   }
+  const isAdmin = req.user.role !== 'user';
+  const ownerClause = isAdmin ? '' : ' AND user_id = ?';
+  const updateParams = isAdmin ? [name, url || null, apiKey, category || null, notes || '', req.params.id]
+                               : [name, url || null, apiKey, category || null, notes || '', req.params.id, req.user.id];
   db.run(
-    `UPDATE api_entries SET name = ?, url = ?, apiKey = ?, category = ?, notes = ? WHERE id = ?`,
-    [name, url || null, apiKey, category || null, notes || '', req.params.id],
+    `UPDATE api_entries SET name = ?, url = ?, apiKey = ?, category = ?, notes = ? WHERE id = ?${ownerClause}`,
+    updateParams,
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       if (this.changes === 0) return res.status(404).json({ error: 'Entry not found' });
@@ -250,7 +299,10 @@ app.put('/api/entries/:id', (req, res) => {
 
 // DELETE entry
 app.delete('/api/entries/:id', (req, res) => {
-  db.run(`DELETE FROM api_entries WHERE id = ?`, [req.params.id], function(err) {
+  const isAdmin = req.user.role !== 'user';
+  const ownerClause = isAdmin ? '' : ' AND user_id = ?';
+  const delParams = isAdmin ? [req.params.id] : [req.params.id, req.user.id];
+  db.run(`DELETE FROM api_entries WHERE id = ?${ownerClause}`, delParams, function(err) {
     if (err) return res.status(500).json({ error: err.message });
     if (this.changes === 0) return res.status(404).json({ error: 'Entry not found' });
     res.json({ success: true, message: 'Entry deleted' });
@@ -259,9 +311,12 @@ app.delete('/api/entries/:id', (req, res) => {
 
 // GET export
 app.get('/api/export', (req, res) => {
+  const isUser = req.user.role === 'user';
+  const whereClause = isUser ? 'WHERE user_id = ?' : '';
+  const params = isUser ? [req.user.id] : [];
   db.all(
-    `SELECT name, url, apiKey, category, notes FROM api_entries ORDER BY created_at DESC`,
-    [],
+    `SELECT name, url, apiKey, category, notes FROM api_entries ${whereClause} ORDER BY created_at DESC`,
+    params,
     (err, rows) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
@@ -293,12 +348,12 @@ app.post('/api/import-text', (req, res) => {
   }
 
   const stmt = db.prepare(
-    `INSERT OR IGNORE INTO api_entries (name, url, apiKey, category, notes) VALUES (?, ?, ?, ?, ?)`
+      `INSERT OR IGNORE INTO api_entries (name, url, apiKey, category, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
   );
 
   db.serialize(() => {
     try {
-      entries.forEach(e => stmt.run(e.name, e.url, e.apiKey, e.category, e.notes || ''));
+        entries.forEach(e => stmt.run(e.name, e.url, e.apiKey, e.category, e.notes || '', req.user.id));
       stmt.finalize(err => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true, imported: entries.length });
@@ -323,12 +378,12 @@ app.post('/api/import', (req, res) => {
   }
 
   const stmt = db.prepare(
-    `INSERT OR IGNORE INTO api_entries (name, url, apiKey, category, notes) VALUES (?, ?, ?, ?, ?)`
+      `INSERT OR IGNORE INTO api_entries (name, url, apiKey, category, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
   );
 
   db.serialize(() => {
     try {
-      valid.forEach(e => stmt.run(e.name, e.url || null, e.apiKey, e.category || null, e.notes || ''));
+        valid.forEach(e => stmt.run(e.name, e.url || null, e.apiKey, e.category || null, e.notes || '', req.user.id));
       stmt.finalize(err => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ success: true, imported: valid.length });
