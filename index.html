@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HighFish API DB - API Management</title>
+        <link rel="icon" href="favicon/favicon.ico">
+        <title>HighFish API DB - API Management</title>
     <style>
         :root {
             --cat-llm: #f87171;
@@ -14,6 +15,9 @@
             --cat-github: #a78bfa;
             --cat-google: #f472b6;
             --cat-other: #94a3b8;
+            /* Theme colors */
+            --bg-color: #0f172a; /* default dark */
+            --text-color: #f1f5f9;
         }
 
         .category-badge {
@@ -45,8 +49,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #f1f5f9;
+            background: var(--bg-color, linear-gradient(135deg, #0f172a 0%, #1e293b 100%));
+            color: var(--text-color, #f1f5f9);
             min-height: 100vh;
             padding: 20px;
         }
@@ -116,7 +120,7 @@
         }
 
         .hamburger-btn {
-            display: none;
+            display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -484,6 +488,15 @@
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
+        .list-mode {
+            grid-template-columns: 1fr !important;
+        }
+        .grid-2col {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+        .grid-3col {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        }
 
         @media (max-width: 768px) {
             .api-grid {
@@ -775,9 +788,8 @@
                 <button class="drawer-close" onclick="closeMenu()" aria-label="Menü schließen">✕</button>
                 <ul>
                     <li><a href="#" onclick="openAddModal(); closeMenu();">＋ Neue API</a></li>
-                    <li><a href="#" onclick="exportAPIs('json'); closeMenu();">📄 Als JSON exportieren</a></li>
-                    <li><a href="#" onclick="exportAPIs('md'); closeMenu();">📝 Als Markdown exportieren</a></li>
-                    <li><a href="#" onclick="exportAPIs('pdf'); closeMenu();">📕 Als PDF exportieren</a></li>
+                    <li><a href="#" onclick="openAdmin(); closeMenu();">⚙️ Admin‑Einstellungen</a></li>
+                    <li><a href="#" onclick="openDisplayMode(); closeMenu();">📐 Anzeige‑Modus</a></li>
                 </ul>
             </nav>
 
@@ -1054,10 +1066,81 @@
             setTimeout(() => document.getElementById('apiName').focus(), 100);
         }
 
-        function closeModal() {
-            document.getElementById('apiModal').classList.remove('active');
-            currentEditId = null;
+        function openAdmin() {
+            // Admin‑Modal mit Theme‑Auswahl, Anzeige‑Modus und praktischen Optionen
+            const modal = document.createElement('div');
+            modal.className = 'modal admin-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">Admin‑Einstellungen</div>
+                    <div class="modal-body">
+                        <h3>Theme‑Auswahl</h3>
+                        <div class="theme-options">
+                            <button class="btn-primary" onclick="setTheme('light')">Hell</button>
+                            <button class="btn-primary" onclick="setTheme('dark')">Dunkel</button>
+                            <button class="btn-primary" onclick="setTheme('blue')">Blau</button>
+                            <button class="btn-primary" onclick="setTheme('green')">Grün</button>
+                            <button class="btn-primary" onclick="setTheme('purple')">Lila</button>
+                            <button class="btn-primary" onclick="setTheme('orange')">Orange</button>
+                        </div>
+                        <h3>Anzeige‑Modus</h3>
+                        <div class="display-options">
+                            <button class="btn-primary" onclick="setDisplayMode('list')">Einspaltige Liste</button>
+                            <button class="btn-primary" onclick="setDisplayMode('2col')">2‑Spalten‑Grid</button>
+                            <button class="btn-primary" onclick="setDisplayMode('3col')">3‑Spalten‑Grid</button>
+                            <button class="btn-primary" onclick="setDisplayMode('compact')">Kompakt‑Ansicht</button>
+                            <button class="btn-primary" onclick="setDisplayMode('tile')">Kachel‑Ansicht</button>
+                        </div>
+                        <h3>Praktische Aktionen</h3>
+                        <div class="action-options">
+                            <button class="btn-primary" onclick="sortAPIs()">APIs alphabetisch sortieren</button>
+                            <button class="btn-primary" onclick="toggleApiKeys()">API‑Keys ein/ausblenden</button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-primary" onclick="document.querySelector('.admin-modal').remove()">Schließen</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
         }
+
+
+
+        function openTheme() {
+            // Platzhalter‑Modal – später Theme‑Auswahl einbauen
+            const modal = document.createElement('div');
+            modal.className = 'modal theme-modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">Theme‑Auswahl</div>
+                    <div class="modal-body">
+                        <p>Wähle ein Theme aus (z. B. Licht/Dunkel).</p>
+                        <button class="btn-primary" onclick="setTheme('light')">Helles Theme</button>
+                        <button class="btn-primary" onclick="setTheme('dark')">Dunkles Theme</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn-primary" onclick="document.querySelector('.theme-modal').remove()">Schließen</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+        
+        function setTheme(name) {
+            // Moderne Subtil‑Themes (6 Varianten)
+            const themes = {
+                light:  { '--bg-color': '#ffffff', '--text-color': '#111827', '--card-bg': '#f9fafb', '--card-border': 'rgba(0,0,0,0.1)', '--accent': '#38bdf8' },
+                dark:   { '--bg-color': '#0f172a', '--text-color': '#f1f5f9', '--card-bg': '#1e293b', '--card-border': 'rgba(56,189,248,0.2)', '--accent': '#38bdf8' },
+                blue:   { '--bg-color': '#0e1a40', '--text-color': '#e0f2fe', '--card-bg': '#1e293b', '--card-border': 'rgba(96,165,250,0.2)', '--accent': '#60a5fa' },
+                green:  { '--bg-color': '#041f13', '--text-color': '#d1fae5', '--card-bg': '#1e293b', '--card-border': 'rgba(52,211,153,0.2)', '--accent': '#34d399' },
+                purple: { '--bg-color': '#1e1b4b', '--text-color': '#e9d5ff', '--card-bg': '#1e293b', '--card-border': 'rgba(167,139,250,0.2)', '--accent': '#a78bfa' },
+                orange: { '--bg-color': '#2c1a00', '--text-color': '#ffecd5', '--card-bg': '#1e293b', '--card-border': 'rgba(251,146,60,0.2)', '--accent': '#fb923c' }
+            };
+            const theme = themes[name] || themes.dark;
+            for (const [k, v] of Object.entries(theme)) {
+                document.documentElement.style.setProperty(k, v);
+            }
+        }
+
 
         async function handleSaveAPI(e) {
             e.preventDefault();
