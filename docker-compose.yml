@@ -20,7 +20,13 @@ services:
     restart: unless-stopped
     labels:
       - "com.example.description=HighFish API DB - API Key Management"
+    networks:
+      - highfishNetwork
 
 volumes:
   highfish-data:
     driver: local
+
+networks:
+  highfishNetwork:
+    driver: bridge
