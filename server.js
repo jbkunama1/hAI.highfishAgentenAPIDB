@@ -24,8 +24,9 @@ const DB_PATH = process.env.DB_PATH || (process.env.NODE_ENV === 'production' ? 
 app.use(cors({ origin: ALLOWED_ORIGINS }));
 app.use(bodyParser.json({ limit: '1mb' }));
 
-// Serve only the logo image statically (keeps server.js, package.json, etc. private)
+// Serve only the logo image and favicon statically (keeps server.js, package.json, etc. private)
 app.use('/highfishapidblogo.png', express.static(path.join(__dirname, 'highfishapidblogo.png')));
+app.use('/favicon', express.static(path.join(__dirname, 'favicon')));
 
 // Rate limiting (max 100 req/min per IP, auto-cleanup)
 const rateLimit = {};

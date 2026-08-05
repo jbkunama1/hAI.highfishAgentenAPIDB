@@ -488,13 +488,13 @@
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
         }
-        .list-mode {
-            grid-template-columns: 1fr !important;
+        .api-container.list {
+            display: block;
         }
-        .grid-2col {
+        .api-container.grid-2col {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         }
-        .grid-3col {
+        .api-container.grid-3col {
             grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
         }
 
@@ -575,8 +575,8 @@
         }
 
         .api-card {
-            background: #1e293b;
-            border: 1px solid rgba(56, 189, 248, 0.2);
+                    background: var(--card-bg, #1e293b);
+                    border: 1px solid var(--card-border, rgba(56, 189, 248, 0.2));
             border-radius: 10px;
             padding: 20px;
             transition: all 0.3s;
@@ -599,6 +599,60 @@
             height: 3px;
             background: linear-gradient(90deg, #38bdf8 0%, #06b6d4 100%);
         }
+
+                .api-container {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                    gap: 20px;
+                }
+
+                .api-container.list {
+                    display: block;
+                }
+
+                .api-container.mobile-compact {
+                    display: block;
+                }
+
+                .api-container.mobile-compact .api-card {
+                    padding: 10px;
+                    margin-bottom: 8px;
+                }
+
+                .api-container.mobile-compact .api-name {
+                    font-size: 14px;
+                }
+
+                .api-container.mobile-compact .category-badge {
+                    font-size: 10px;
+                    padding: 2px 6px;
+                }
+
+                @media (max-width: 768px) {
+                    .mobile-compact .api-card {
+                        padding: 8px;
+                        margin-bottom: 5px;
+                    }
+
+                    .mobile-compact .api-key {
+                        font-size: 12px;
+                    }
+
+                    .mobile-compact .card-actions {
+                        margin-top: 8px;
+                        flex-direction: row;
+                        gap: 10px;
+                    }
+                }
+
+                .empty-state {
+                    text-align: center;
+                    padding: 60px 20px;
+                    color: var(--text-color, #f1f5f9);
+                    background: var(--card-bg, #1e293b);
+                    border-radius: 10px;
+                    border: 1px solid var(--card-border, rgba(56, 189, 248, 0.2));
+                }
 
         .api-name {
             font-size: 18px;
@@ -789,7 +843,6 @@
                 <ul>
                     <li><a href="#" onclick="openAddModal(); closeMenu();">＋ Neue API</a></li>
                     <li><a href="#" onclick="openAdmin(); closeMenu();">⚙️ Admin‑Einstellungen</a></li>
-                    <li><a href="#" onclick="openDisplayMode(); closeMenu();">📐 Anzeige‑Modus</a></li>
                 </ul>
             </nav>
 
@@ -825,7 +878,7 @@
             </div>
 
             <!-- API Grid -->
-            <div id="apiContainer" class="api-grid"></div>
+            <div id="apiContainer" class="api-container"></div>
             <div id="emptyState" class="empty-state" style="display: none;">
                 <p style="font-size: 40px; margin-bottom: 10px;">📭</p>
                 <p>Noch keine APIs gespeichert.</p>
@@ -916,6 +969,8 @@
                     }
                     showMainContent();
                     loadAPIs();
+                    const savedTheme = localStorage.getItem('theme');
+                    if (savedTheme) setTheme(savedTheme);
                 }).catch(function () {
                     handleLogout();
                 });
@@ -1090,6 +1145,7 @@
                             <button class="btn-primary" onclick="setDisplayMode('3col')">3‑Spalten‑Grid</button>
                             <button class="btn-primary" onclick="setDisplayMode('compact')">Kompakt‑Ansicht</button>
                             <button class="btn-primary" onclick="setDisplayMode('tile')">Kachel‑Ansicht</button>
+                            <button class="btn-primary" onclick="setDisplayMode('mobile-compact')">Mobile kompakt</button>
                         </div>
                         <h3>Praktische Aktionen</h3>
                         <div class="action-options">
@@ -1102,28 +1158,35 @@
                     </div>
                 </div>`;
             document.body.appendChild(modal);
-        }
+                            modal.style.display = 'flex';
+                        }
 
-
-
-        function openTheme() {
-            // Platzhalter‑Modal – später Theme‑Auswahl einbauen
-            const modal = document.createElement('div');
-            modal.className = 'modal theme-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <div class="modal-header">Theme‑Auswahl</div>
-                    <div class="modal-body">
-                        <p>Wähle ein Theme aus (z. B. Licht/Dunkel).</p>
-                        <button class="btn-primary" onclick="setTheme('light')">Helles Theme</button>
-                        <button class="btn-primary" onclick="setTheme('dark')">Dunkles Theme</button>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-primary" onclick="document.querySelector('.theme-modal').remove()">Schließen</button>
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-        }
+        
+        
+                        function openTheme() {
+                            // Platzhalter‑Modal – später Theme‑Auswahl einbauen
+                            const modal = document.createElement('div');
+                            modal.className = 'modal theme-modal';
+                            modal.innerHTML = `
+                                <div class="modal-content">
+                                    <div class="modal-header">Theme‑Auswahl</div>
+                                    <div class="modal-body">
+                                        <p>Wähle ein Theme aus (z. B. Licht/Dunkel).</p>
+                                        <button class="btn-primary" onclick="setTheme('light')">Helles Theme</button>
+                                        <button class="btn-primary" onclick="setTheme('dark')">Dunkles Theme</button>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn-primary" onclick="document.querySelector('.theme-modal').remove()">Schließen</button>
+                                    </div>
+                                </div>`;
+                            document.body.appendChild(modal);
+                            modal.style.display = 'flex';
+                        }
+        
+                        function closeModal() {
+                            const modal = document.querySelector('.modal.active');
+                            if (modal) modal.classList.remove('active');
+                        }
         
         function setTheme(name) {
             // Moderne Subtil‑Themes (6 Varianten)
@@ -1139,6 +1202,7 @@
             for (const [k, v] of Object.entries(theme)) {
                 document.documentElement.style.setProperty(k, v);
             }
+            localStorage.setItem('theme', name);
         }
 
 
@@ -1162,6 +1226,7 @@
                 showSuccess(currentEditId ? 'API aktualisiert' : 'API gespeichert');
                 await loadAPIs();
                 closeModal();
+                document.getElementById('apiModal').classList.remove('active');
             } catch (error) {
                 console.error('Error:', error);
             }
@@ -1215,7 +1280,30 @@
             });
         }
 
-        function filterAPIs() {
+                function setDisplayMode(mode) {
+                    localStorage.setItem('displayMode', mode);
+                    const container = document.getElementById('apiContainer');
+                    container.classList.remove('list', 'grid-2col', 'grid-3col', 'tile', 'mobile-compact');
+                    container.style.display = '';
+                    container.style.gridTemplateColumns = '';
+                    container.style.gap = '';
+
+                    if (mode === 'list') {
+                        container.classList.add('list');
+                    } else if (mode === '2col') {
+                        container.classList.add('grid-2col');
+                    } else if (mode === '3col') {
+                        container.classList.add('grid-3col');
+                    } else if (mode === 'compact' || mode === 'mobile-compact') {
+                        container.classList.add('mobile-compact');
+                    } else if (mode === 'tile') {
+                        container.style.display = 'grid';
+                        container.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
+                        container.style.gap = '15px';
+                    }
+                }
+
+                function filterAPIs() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const filtered = allAPIs.filter(api => 
                 api.name.toLowerCase().includes(search) || 
