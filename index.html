@@ -18,6 +18,10 @@
             /* Theme colors */
             --bg-color: #0f172a; /* default dark */
             --text-color: #f1f5f9;
+                        --card-bg: #1e293b;
+                        --card-border: rgba(56, 189, 248, 0.2);
+                        --accent: #38bdf8;
+                        --accent-2: #06b6d4;
         }
 
         .category-badge {
@@ -353,7 +357,7 @@
         .login-btn {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+                    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
             color: white;
             border: none;
             border-radius: 6px;
@@ -410,7 +414,7 @@
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+                    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
             color: white;
         }
 
@@ -586,8 +590,8 @@
         }
 
         .api-card {
-            background: #1e293b;
-            border: 1px solid rgba(56, 189, 248, 0.2);
+                    background: var(--card-bg);
+                    border: 1px solid var(--card-border);
             border-radius: 10px;
             padding: 20px;
             transition: all 0.3s;
@@ -596,8 +600,8 @@
         }
 
         .api-card:hover {
-            border-color: #38bdf8;
-            box-shadow: 0 8px 25px rgba(56, 189, 248, 0.1);
+                    border-color: var(--accent);
+                    box-shadow: 0 8px 25px color-mix(in srgb, var(--accent) 10%, transparent);
             transform: translateY(-4px);
         }
 
@@ -608,19 +612,19 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, #38bdf8 0%, #06b6d4 100%);
+                    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
         }
 
         .api-name {
             font-size: 18px;
             font-weight: 600;
-            color: #38bdf8;
+                    color: var(--accent);
             margin-bottom: 10px;
             word-break: break-word;
         }
 
         .api-key {
-            background: #0f172a;
+                    background: color-mix(in srgb, var(--bg-color) 60%, var(--card-bg) 40%);
             padding: 10px;
             border-radius: 6px;
             margin: 10px 0;
@@ -635,8 +639,8 @@
         }
 
         .copy-btn {
-            background: #38bdf8;
-            color: #0f172a;
+                    background: var(--accent);
+                    color: var(--bg-color);
             border: none;
             padding: 4px 8px;
             border-radius: 4px;
@@ -648,7 +652,7 @@
         }
 
         .copy-btn:hover {
-            background: #06b6d4;
+                    background: var(--accent-2);
         }
 
         .api-notes {
@@ -656,7 +660,7 @@
             font-size: 13px;
             margin-top: 10px;
             padding-top: 10px;
-            border-top: 1px solid rgba(56, 189, 248, 0.1);
+                    border-top: 1px solid var(--card-border);
             max-height: 60px;
             overflow-y: auto;
         }
@@ -875,11 +879,7 @@
                                 }
 
                                 body.saas-market .mk-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-                                body.saas-market .mk-tools { display: flex; gap: 5px; font-size: 12px; color: #6b7280; align-items: baseline; }
-                                body.saas-market .mk-tools-num { font-weight: 700; color: #111827; }
-                                body.saas-market .mk-segs { display: flex; gap: 3px; align-items: center; }
-                                body.saas-market .mk-seg { width: 8px; height: 8px; border-radius: 2px; background: #e5e7eb; }
-                                body.saas-market .mk-seg.on { background: #2563eb; }
+                                body.saas-market .mk-tools { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #6b7280; }
                                 body.saas-market .mk-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
                                 body.saas-market .mk-iconbtn {
                                     width: 32px;
@@ -1234,13 +1234,13 @@
                 const catColors = { LLM:'#f87171', Picture:'#fb923c', Media:'#fbbf24', Video:'#34d399', Security:'#818cf8', Github:'#a78bfa', Google:'#f472b6', Other:'#94a3b8', MCP:'#2dd4bf', Mail:'#38bdf8', Finance:'#4ade80', Bot:'#c084fc', HomeAutomation:'#fda4af', '9router':'#facc15' };
                 const catColor = (cat) => catColors[cat] || '#64748b';
 
-                // "Tools"-Anzahl: abgeleitet aus der Anzahl der Einträge in derselben Kategorie (DB kennt keine eigene Tools-Anzahl)
-                const mkSegs = (n) => {
-                    const filled = Math.max(1, Math.min(5, n));
-                    return [1,2,3,4,5].map(i => `<span class="mk-seg${i <= filled ? ' on' : ''}"></span>`).join('');
+                                // Zeigt die echte URL aus der DB (Host + Pfad) statt einer erfundenen Tools-Anzahl
+                                const trimUrl = (u) => {
+                                    try { const h = new URL(u.startsWith('http') ? u : 'http://' + u).host; return h.replace(/^www\./, ''); }
+                                    catch (e) { return u || 'Keine URL'; }
                 };
 
-                function saasCard(api, counts) {
+                function saasCard(api) {
                     const cat = api.category || 'Andere';
                     return `
                         <div class="api-card mk-card">
@@ -1254,14 +1254,13 @@
                             </div>
                             <div class="mk-desc">${escapeHtml(api.notes || 'Keine Beschreibung hinterlegt.')}</div>
                             <div class="mk-meta">
-                                <div class="mk-tools"><span class="mk-tools-num">${counts[cat] || 1}</span> Tools</div>
-                                <div class="mk-segs">${mkSegs(counts[cat] || 1)}</div>
-                                <span class="category-badge cat-${escapeHtml(api.category || 'default')}">${escapeHtml(cat)}</span>
-                                <div class="mk-actions">
-                                    <button type="button" class="mk-iconbtn" onclick="copyToClipboard(${api.id})" title="API-Key kopieren">📋</button>
-                                    <button type="button" class="mk-install" onclick="openApi(${api.id})">Install<span class="mk-arrow">→</span></button>
-                                </div>
-                            </div>
+                                                            <div class="mk-tools">${trimUrl(api.url)}</div>
+                                                            <span class="category-badge cat-${escapeHtml(api.category || 'default')}">${escapeHtml(cat)}</span>
+                                                            <div class="mk-actions">
+                                                                <button type="button" class="mk-iconbtn" onclick="copyToClipboard(${api.id})" title="API-Key kopieren">📋</button>
+                                                                <button type="button" class="mk-install" onclick="openApi(${api.id})">Install<span class="mk-arrow">→</span></button>
+                                                            </div>
+                                                        </div>
                             <div class="mk-foot">
                                 <button type="button" class="mk-ghost" onclick="editAPI(${api.id})">Bearbeiten</button>
                                 <button type="button" class="mk-ghost mk-danger" onclick="deleteAPI(${api.id})">Löschen</button>
@@ -1291,9 +1290,7 @@
                     const isSaas = document.body.classList.contains('saas-market');
 
                     if (isSaas) {
-                        const counts = {};
-                        apis.forEach(a => { const c = a.category || 'Andere'; counts[c] = (counts[c] || 0) + 1; });
-                        container.innerHTML = apis.map(api => saasCard(api, counts)).join('');
+                        container.innerHTML = apis.map(api => saasCard(api)).join('');
                         return;
                     }
 
@@ -1365,6 +1362,12 @@
                             <button class="btn-primary" onclick="sortAPIs()">APIs alphabetisch sortieren</button>
                             <button class="btn-primary" onclick="toggleApiKeys()">API‑Keys ein/ausblenden</button>
                         </div>
+                                                <h3>Export</h3>
+                                                <div class="action-options">
+                                                    <button class="btn-primary" onclick="exportAPIs('json')">JSON exportieren</button>
+                                                    <button class="btn-primary" onclick="exportAPIs('md')">Markdown exportieren</button>
+                                                    <button class="btn-primary" onclick="exportAPIs('pdf')">PDF exportieren</button>
+                                                </div>
                     </div>
                     <div class="modal-footer">
                         <button class="btn-primary" onclick="document.querySelector('.admin-modal').remove()">Schließen</button>
@@ -1408,14 +1411,14 @@
 
         function setTheme(name) {
             const themes = {
-                light:  { '--bg-color': '#ffffff', '--text-color': '#111827', '--card-bg': '#f9fafb', '--card-border': 'rgba(0,0,0,0.1)', '--accent': '#38bdf8' },
-                dark:   { '--bg-color': '#0f172a', '--text-color': '#f1f5f9', '--card-bg': '#1e293b', '--card-border': 'rgba(56,189,248,0.2)', '--accent': '#38bdf8' },
-                blue:   { '--bg-color': '#0e1a40', '--text-color': '#e0f2fe', '--card-bg': '#1e293b', '--card-border': 'rgba(96,165,250,0.2)', '--accent': '#60a5fa' },
-                green:  { '--bg-color': '#041f13', '--text-color': '#d1fae5', '--card-bg': '#1e293b', '--card-border': 'rgba(52,211,153,0.2)', '--accent': '#34d399' },
-                purple: { '--bg-color': '#1e1b4b', '--text-color': '#e9d5ff', '--card-bg': '#1e293b', '--card-border': 'rgba(167,139,250,0.2)', '--accent': '#a78bfa' },
-                orange: { '--bg-color': '#2c1a00', '--text-color': '#ffecd5', '--card-bg': '#1e293b', '--card-border': 'rgba(251,146,60,0.2)', '--accent': '#fb923c' },
-                                dsa:    { '--bg-color': '#f5f7fa', '--text-color': '#1f2937', '--card-bg': '#ffffff', '--card-border': 'rgba(17,24,39,0.06)', '--accent': '#0ea5e9' },
-                                saas:   { '--bg-color': '#f3f4f6', '--text-color': '#1f2937', '--card-bg': '#ffffff', '--card-border': 'rgba(17,24,39,0.08)', '--accent': '#2563eb' }
+                light:  { '--bg-color': '#ffffff', '--text-color': '#111827', '--card-bg': '#f9fafb', '--card-border': 'rgba(0,0,0,0.1)', '--accent': '#38bdf8', '--accent-2': '#0284c7' },
+                                dark:   { '--bg-color': '#0f172a', '--text-color': '#f1f5f9', '--card-bg': '#1e293b', '--card-border': 'rgba(56,189,248,0.2)', '--accent': '#38bdf8', '--accent-2': '#06b6d4' },
+                                blue:   { '--bg-color': '#0e1a40', '--text-color': '#e0f2fe', '--card-bg': '#16266b', '--card-border': 'rgba(96,165,250,0.25)', '--accent': '#60a5fa', '--accent-2': '#3b82f6' },
+                                green:  { '--bg-color': '#041f13', '--text-color': '#d1fae5', '--card-bg': '#0b2d1d', '--card-border': 'rgba(52,211,153,0.25)', '--accent': '#34d399', '--accent-2': '#10b981' },
+                                purple: { '--bg-color': '#1e1b4b', '--text-color': '#e9d5ff', '--card-bg': '#2e2a66', '--card-border': 'rgba(167,139,250,0.25)', '--accent': '#a78bfa', '--accent-2': '#8b5cf6' },
+                                orange: { '--bg-color': '#2c1a00', '--text-color': '#ffecd5', '--card-bg': '#3b2600', '--card-border': 'rgba(251,146,60,0.25)', '--accent': '#fb923c', '--accent-2': '#f97316' },
+                                                dsa:    { '--bg-color': '#f5f7fa', '--text-color': '#1f2937', '--card-bg': '#ffffff', '--card-border': 'rgba(17,24,39,0.06)', '--accent': '#0ea5e9', '--accent-2': '#6366f1' },
+                                                saas:   { '--bg-color': '#f3f4f6', '--text-color': '#1f2937', '--card-bg': '#ffffff', '--card-border': 'rgba(17,24,39,0.08)', '--accent': '#2563eb', '--accent-2': '#1d4ed8' }
                             };
                             const theme = themes[name] || themes.dark;
                             document.body.classList.toggle('dsa-design', name === 'dsa');
