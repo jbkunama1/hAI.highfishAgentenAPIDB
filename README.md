@@ -1,5 +1,9 @@
 # hAI · HighFish Agenten API DB
 
+<a href="https://www.buymeacoffee.com/highfish">
+<img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174">
+</a>
+
 > Leichtgewichtige SQLite-basierte API-Schlüsselverwaltung für KI-Agenten-Infrastrukturen – containerisiert, sofort einsatzbereit.
 
 ![HighFish API DB Logo](highfishapidblogo.png)
@@ -349,3 +353,4 @@ MIT – siehe [LICENSE](LICENSE)
 ---
 
 *Teil der **hAI · HighFish** Infrastruktur – selbstgehostete KI-Agenten-Verwaltung.*
+
