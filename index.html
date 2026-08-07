@@ -497,6 +497,17 @@
         .grid-3col {
             grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
         }
+                /* Kompakt-Ansicht */
+                body.compact-mode .api-grid { gap: 12px; }
+                body.compact-mode .api-card { padding: 14px 16px; }
+                body.compact-mode .api-name { font-size: 15px; }
+                body.compact-mode .api-key { font-size: 11px; padding: 7px; }
+                body.compact-mode .card-actions button { padding: 6px; font-size: 11px; }
+                /* Kachel-Ansicht */
+                body.tile-mode .api-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+                body.tile-mode .api-card { padding: 14px; }
+                body.tile-mode .api-key { font-size: 11px; flex-direction: column; align-items: center; }
+                body.tile-mode .card-actions { flex-direction: column; }
 
         @media (max-width: 768px) {
             .api-grid {
@@ -744,7 +755,201 @@
             color: #94a3b8;
             margin-top: 5px;
         }
-    </style>
+
+                /* DSA-Design: helles, minimales Theme mit weißen Karten & weichen Schatten */
+                body.dsa-design h1 {
+                    background: linear-gradient(135deg, #0284c7, #0ea5e9);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                }
+                body.dsa-design header { border-bottom-color: #e5e7eb; }
+                body.dsa-design .api-card {
+                    background: #ffffff;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 16px rgba(17, 24, 39, 0.06);
+                }
+                body.dsa-design .api-card:hover {
+                    border-color: #cbd5e1;
+                    box-shadow: 0 12px 28px rgba(17, 24, 39, 0.12);
+                }
+                body.dsa-design .api-card::before { background: linear-gradient(90deg, #0ea5e9 0%, #6366f1 100%); }
+                body.dsa-design .api-name { color: #0f172a; }
+                body.dsa-design .api-key { background: #f9fafb; border: 1px solid #e5e7eb; color: #334155; }
+                body.dsa-design .copy-btn { background: #0ea5e9; color: #fff; }
+                body.dsa-design .copy-btn:hover { background: #0284c7; }
+                body.dsa-design .api-notes { color: #6b7280; border-top-color: #e5e7eb; }
+                body.dsa-design .card-actions .btn-secondary { background-color: #e2e8f0; color: #334155; }
+                body.dsa-design .card-actions .btn-secondary:hover { background-color: #cbd5e1; }
+                body.dsa-design .modal-content { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 20px 40px rgba(17, 24, 39, 0.15); }
+                body.dsa-design .modal-header { color: #0f172a; border-bottom-color: #e5e7eb; }
+                body.dsa-design .stat-card { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 2px 8px rgba(17, 24, 39, 0.05); }
+                body.dsa-design .stat-value { color: #0284c7; }
+                body.dsa-design .stat-label { color: #6b7280; }
+                body.dsa-design input[type="password"],
+                body.dsa-design input[type="text"],
+                body.dsa-design textarea,
+                body.dsa-design .search-box input {
+                    background: #ffffff;
+                    border: 1px solid #d1d5db;
+                    color: #1f2937;
+                }
+                body.dsa-design input:focus,
+                body.dsa-design textarea:focus,
+                body.dsa-design .search-box input:focus {
+                    border-color: #0ea5e9;
+                    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+                }
+                body.dsa-design label { color: #374151; }
+                body.dsa-design .btn-secondary { background-color: #e2e8f0; color: #334155; }
+                body.dsa-design .btn-secondary:hover { background-color: #cbd5e1; }
+                body.dsa-design .export-menu { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 10px 30px rgba(17, 24, 39, 0.12); }
+                body.dsa-design .export-menu button { color: #374151; }
+                body.dsa-design .export-menu button:hover { background: #f1f5f9; }
+                body.dsa-design .drawer { background: #ffffff; border-right-color: #e5e7eb; }
+                body.dsa-design .drawer ul li a { color: #374151; }
+                body.dsa-design .drawer ul li a:hover { background: #f1f5f9; color: #0284c7; }
+                body.dsa-design .drawer-close { color: #6b7280; }
+                body.dsa-design .drawer-close:hover { color: #1f2937; }
+                body.dsa-design .login-screen { background: #f5f7fa; }
+                body.dsa-design .login-container { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 20px 60px rgba(17, 24, 39, 0.12); }
+                body.dsa-design .login-container h2 { color: #0284c7; }
+                body.dsa-design .error-message { background-color: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+                body.dsa-design .success-message { background-color: #f0fdf4; border-color: #86efac; color: #166534; }
+                body.dsa-design .empty-state { color: #6b7280; }
+                body.dsa-design .hamburger-btn { background: #ffffff; border-color: #e5e7eb; }
+                body.dsa-design .hamburger-btn span { background: #0ea5e9; }
+
+                                /* ===== SaaS-Marktplatz-Design ===== */
+                                body.saas-market .api-grid {
+                                    grid-template-columns: repeat(3, 1fr);
+                                    gap: 20px;
+                                }
+                                @media (max-width: 900px) { body.saas-market .api-grid { grid-template-columns: repeat(2, 1fr); } }
+                                @media (max-width: 600px) { body.saas-market .api-grid { grid-template-columns: 1fr; } }
+
+                                body.saas-market .mk-card {
+                                    background: #ffffff;
+                                    border: 1px solid #e5e7eb;
+                                    border-radius: 14px;
+                                    box-shadow: 0 4px 16px rgba(17, 24, 39, 0.06);
+                                    padding: 20px;
+                                    display: flex;
+                                    flex-direction: column;
+                                    gap: 12px;
+                                }
+                                body.saas-market .mk-card:hover {
+                                    border-color: #d1d5db;
+                                    box-shadow: 0 12px 28px rgba(17, 24, 39, 0.10);
+                                }
+                                body.saas-market .mk-card::before { display: none; }
+
+                                body.saas-market .mk-head { display: flex; align-items: center; gap: 12px; }
+                                body.saas-market .mk-icon {
+                                    width: 42px;
+                                    height: 42px;
+                                    border-radius: 10px;
+                                    color: #fff;
+                                    font-size: 20px;
+                                    font-weight: 700;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    flex-shrink: 0;
+                                }
+                                body.saas-market .mk-title { flex: 1; min-width: 0; }
+                                body.saas-market .mk-name { font-weight: 700; font-size: 16px; color: #111827; word-break: break-word; }
+                                body.saas-market .mk-cats { font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: #6b7280; margin-top: 2px; }
+                                body.saas-market .mk-globe { font-size: 15px; color: #2563eb; text-decoration: none; flex-shrink: 0; }
+
+                                body.saas-market .mk-desc {
+                                    color: #4b5563;
+                                    font-size: 13px;
+                                    line-height: 1.45;
+                                    display: -webkit-box;
+                                    -webkit-line-clamp: 2;
+                                    -webkit-box-orient: vertical;
+                                    overflow: hidden;
+                                    min-height: 38px;
+                                }
+
+                                body.saas-market .mk-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+                                body.saas-market .mk-tools { display: flex; gap: 5px; font-size: 12px; color: #6b7280; align-items: baseline; }
+                                body.saas-market .mk-tools-num { font-weight: 700; color: #111827; }
+                                body.saas-market .mk-segs { display: flex; gap: 3px; align-items: center; }
+                                body.saas-market .mk-seg { width: 8px; height: 8px; border-radius: 2px; background: #e5e7eb; }
+                                body.saas-market .mk-seg.on { background: #2563eb; }
+                                body.saas-market .mk-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+                                body.saas-market .mk-iconbtn {
+                                    width: 32px;
+                                    height: 32px;
+                                    border-radius: 8px;
+                                    border: 1px solid #e5e7eb;
+                                    background: #ffffff;
+                                    color: #374151;
+                                    font-size: 14px;
+                                    cursor: pointer;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    padding: 0;
+                                    transition: all .2s;
+                                }
+                                body.saas-market .mk-iconbtn:hover { border-color: #2563eb; color: #2563eb; }
+                                body.saas-market .mk-install {
+                                    background: #2563eb;
+                                    color: #fff;
+                                    border: none;
+                                    border-radius: 8px;
+                                    padding: 8px 14px;
+                                    font-size: 13px;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    display: inline-flex;
+                                    align-items: center;
+                                    gap: 6px;
+                                    transition: all .2s;
+                                }
+                                body.saas-market .mk-install:hover { background: #1d4ed8; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+                                body.saas-market .mk-arrow { font-size: 15px; line-height: 1; }
+
+                                body.saas-market .mk-foot { border-top: 1px solid #f3f4f6; padding-top: 10px; display: flex; gap: 8px; }
+                                body.saas-market .mk-ghost {
+                                    background: none;
+                                    border: none;
+                                    padding: 4px 6px;
+                                    font-size: 12px;
+                                    color: #9ca3af;
+                                    cursor: pointer;
+                                    font-weight: 600;
+                                }
+                                body.saas-market .mk-ghost:hover { color: #374151; }
+                                body.saas-market .mk-ghost.mk-danger:hover { color: #dc2626; }
+
+                                /* Hellgrauer Hintergrund & weiße Flächen für das SaaS-Design */
+                                body.saas-market h1 { background: linear-gradient(135deg, #1d4ed8, #0ea5e9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+                                body.saas-market header { border-bottom-color: #e5e7eb; }
+                                body.saas-market .stat-card { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 2px 8px rgba(17, 24, 39, 0.05); }
+                                body.saas-market .stat-value { color: #2563eb; }
+                                body.saas-market .stat-label { color: #6b7280; }
+                                body.saas-market .modal-content { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 20px 40px rgba(17, 24, 39, 0.15); }
+                                body.saas-market .modal-header { color: #111827; border-bottom-color: #e5e7eb; }
+                                body.saas-market input[type="password"], body.saas-market input[type="text"], body.saas-market textarea, body.saas-market .search-box input { background: #ffffff; border: 1px solid #d1d5db; color: #1f2937; }
+                                body.saas-market input:focus, body.saas-market textarea:focus, body.saas-market .search-box input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+                                body.saas-market label { color: #374151; }
+                                body.saas-market .btn-secondary { background-color: #e2e8f0; color: #334155; }
+                                body.saas-market .export-menu { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 10px 30px rgba(17, 24, 39, 0.12); }
+                                body.saas-market .export-menu button { color: #374151; }
+                                body.saas-market .drawer { background: #ffffff; border-right-color: #e5e7eb; }
+                                body.saas-market .drawer ul li a { color: #374151; }
+                                body.saas-market .drawer ul li a:hover { background: #f1f5f9; color: #1d4ed8; }
+                                body.saas-market .drawer-close { color: #6b7280; }
+                                body.saas-market .login-screen { background: #f3f4f6; }
+                                body.saas-market .login-container { background: #ffffff; border: 1px solid #e5e7eb; box-shadow: 0 20px 60px rgba(17, 24, 39, 0.12); }
+                                body.saas-market .login-container h2 { color: #1d4ed8; }
+                                body.saas-market .empty-state { color: #6b7280; }
+                            </style>
 </head>
 <body>
     <!-- Login Screen -->
@@ -941,6 +1146,11 @@
                     localStorage.setItem('hf_auth', 'true');
                     localStorage.setItem('hf_api_key', password);
                     isAuthenticated = true;
+
+                    const savedTheme = localStorage.getItem('hf_theme');
+                    if (savedTheme) setTheme(savedTheme);
+                    const savedDisplayMode = localStorage.getItem('hf_displayMode');
+                    if (savedDisplayMode) setDisplayMode(savedDisplayMode);
                     document.getElementById('password').value = '';
                     showMainContent();
                     loadAPIs();
@@ -1020,39 +1230,95 @@
             }
         }
 
-        function renderAPIs(apis) {
-            const container = document.getElementById('apiContainer');
-            const empty = document.getElementById('emptyState');
+        // SaaS-Marktplatz: Kategoriefarben für das Karten-Icon (an bestehendes Farbschema angelehnt)
+                const catColors = { LLM:'#f87171', Picture:'#fb923c', Media:'#fbbf24', Video:'#34d399', Security:'#818cf8', Github:'#a78bfa', Google:'#f472b6', Other:'#94a3b8', MCP:'#2dd4bf', Mail:'#38bdf8', Finance:'#4ade80', Bot:'#c084fc', HomeAutomation:'#fda4af', '9router':'#facc15' };
+                const catColor = (cat) => catColors[cat] || '#64748b';
 
-            if (apis.length === 0) {
-                container.innerHTML = '';
-                empty.style.display = 'block';
-                return;
-            }
+                // "Tools"-Anzahl: abgeleitet aus der Anzahl der Einträge in derselben Kategorie (DB kennt keine eigene Tools-Anzahl)
+                const mkSegs = (n) => {
+                    const filled = Math.max(1, Math.min(5, n));
+                    return [1,2,3,4,5].map(i => `<span class="mk-seg${i <= filled ? ' on' : ''}"></span>`).join('');
+                };
 
-            empty.style.display = 'none';
-            container.innerHTML = apis.map(api => `
-                <div class="api-card">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                        <div class="api-name">${escapeHtml(api.name)}</div>
-                        ${api.category ? `<span class="category-badge cat-${escapeHtml(api.category)}">${escapeHtml(api.category)}</span>` : ''}
-                    </div>
-                    ${api.url ? `<div style="color: #94a3b8; font-size: 12px; margin-bottom: 10px;">
-                        <strong>URL:</strong> <code style="background: #0f172a; padding: 2px 4px; border-radius: 3px;">${escapeHtml(api.url)}</code>
-                    </div>` : ''}
-                    <div class="api-key">
-                        <span id="key-${api.id}" style="flex: 1; word-break: break-all;">••••••••</span>
-                        <button type="button" class="copy-btn" onclick="toggleKeyVisibility(${api.id})" title="Anzeigen/Verbergen">👁️</button>
-                        <button type="button" class="copy-btn" onclick="copyToClipboard(${api.id})" title="Kopieren">📋</button>
-                    </div>
-                    ${api.notes ? `<div class="api-notes">${escapeHtml(api.notes)}</div>` : ''}
-                    <div class="card-actions">
-                        <button type="button" class="btn-secondary" onclick="editAPI(${api.id})">Bearbeiten</button>
-                        <button type="button" class="btn-danger" onclick="deleteAPI(${api.id})">Löschen</button>
-                    </div>
-                </div>
-            `).join('');
-        }
+                function saasCard(api, counts) {
+                    const cat = api.category || 'Andere';
+                    return `
+                        <div class="api-card mk-card">
+                            <div class="mk-head">
+                                <div class="mk-icon" style="background:${catColor(api.category)}">${escapeHtml((api.name || '?')[0].toUpperCase())}</div>
+                                <div class="mk-title">
+                                    <div class="mk-name">${escapeHtml(api.name)}</div>
+                                    <div class="mk-cats">${escapeHtml(cat.toUpperCase())} · API</div>
+                                </div>
+                                ${api.url ? `<a class="mk-globe" href="${escapeHtml(api.url)}" target="_blank" rel="noopener" title="Externen Link öffnen">🌐</a>` : ''}
+                            </div>
+                            <div class="mk-desc">${escapeHtml(api.notes || 'Keine Beschreibung hinterlegt.')}</div>
+                            <div class="mk-meta">
+                                <div class="mk-tools"><span class="mk-tools-num">${counts[cat] || 1}</span> Tools</div>
+                                <div class="mk-segs">${mkSegs(counts[cat] || 1)}</div>
+                                <span class="category-badge cat-${escapeHtml(api.category || 'default')}">${escapeHtml(cat)}</span>
+                                <div class="mk-actions">
+                                    <button type="button" class="mk-iconbtn" onclick="copyToClipboard(${api.id})" title="API-Key kopieren">📋</button>
+                                    <button type="button" class="mk-install" onclick="openApi(${api.id})">Install<span class="mk-arrow">→</span></button>
+                                </div>
+                            </div>
+                            <div class="mk-foot">
+                                <button type="button" class="mk-ghost" onclick="editAPI(${api.id})">Bearbeiten</button>
+                                <button type="button" class="mk-ghost mk-danger" onclick="deleteAPI(${api.id})">Löschen</button>
+                            </div>
+                        </div>`;
+                }
+
+                function openApi(id) {
+                    const api = allAPIs.find(a => a.id === id);
+                    if (!api) return;
+                    // "Install" öffnet die hinterlegte URL bzw. kopiert bei fehlender URL den API-Key
+                    if (api.url) { window.open(api.url, '_blank', 'noopener'); }
+                    else { copyToClipboard(id); }
+                }
+
+                function renderAPIs(apis) {
+                    const container = document.getElementById('apiContainer');
+                    const empty = document.getElementById('emptyState');
+
+                    if (apis.length === 0) {
+                        container.innerHTML = '';
+                        empty.style.display = 'block';
+                        return;
+                    }
+
+                    empty.style.display = 'none';
+                    const isSaas = document.body.classList.contains('saas-market');
+
+                    if (isSaas) {
+                        const counts = {};
+                        apis.forEach(a => { const c = a.category || 'Andere'; counts[c] = (counts[c] || 0) + 1; });
+                        container.innerHTML = apis.map(api => saasCard(api, counts)).join('');
+                        return;
+                    }
+
+                    container.innerHTML = apis.map(api => `
+                        <div class="api-card">
+                            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                                <div class="api-name">${escapeHtml(api.name)}</div>
+                                ${api.category ? `<span class="category-badge cat-${escapeHtml(api.category)}">${escapeHtml(api.category)}</span>` : ''}
+                            </div>
+                            ${api.url ? `<div style="color: #94a3b8; font-size: 12px; margin-bottom: 10px;">
+                                <strong>URL:</strong> <code style="background: #0f172a; padding: 2px 4px; border-radius: 3px;">${escapeHtml(api.url)}</code>
+                            </div>` : ''}
+                            <div class="api-key">
+                                <span id="key-${api.id}" style="flex: 1; word-break: break-all;">••••••••</span>
+                                <button type="button" class="copy-btn" onclick="toggleKeyVisibility(${api.id})" title="Anzeigen/Verbergen">👁️</button>
+                                <button type="button" class="copy-btn" onclick="copyToClipboard(${api.id})" title="Kopieren">📋</button>
+                            </div>
+                            ${api.notes ? `<div class="api-notes">${escapeHtml(api.notes)}</div>` : ''}
+                            <div class="card-actions">
+                                <button type="button" class="btn-secondary" onclick="editAPI(${api.id})">Bearbeiten</button>
+                                <button type="button" class="btn-danger" onclick="deleteAPI(${api.id})">Löschen</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
 
         function openAddModal() {
             currentEditId = null;
@@ -1082,6 +1348,8 @@
                             <button class="btn-primary" onclick="setTheme('green')">Grün</button>
                             <button class="btn-primary" onclick="setTheme('purple')">Lila</button>
                             <button class="btn-primary" onclick="setTheme('orange')">Orange</button>
+                            <button class="btn-primary" onclick="setTheme('dsa')">Weiß / Minimal</button>
+                            <button class="btn-primary" onclick="setTheme('saas')">light saas</button>
                         </div>
                         <h3>Anzeige‑Modus</h3>
                         <div class="display-options">
@@ -1125,20 +1393,38 @@
             document.body.appendChild(modal);
         }
         
+        function setDisplayMode(mode) {
+            const grid = document.getElementById('apiContainer');
+            grid.classList.remove('list-mode', 'grid-2col', 'grid-3col');
+            document.body.classList.remove('compact-mode', 'tile-mode');
+            if (mode === 'list') grid.classList.add('list-mode');
+            else if (mode === '2col') grid.classList.add('grid-2col');
+            else if (mode === '3col') grid.classList.add('grid-3col');
+            else if (mode === 'compact') document.body.classList.add('compact-mode');
+            else if (mode === 'tile') document.body.classList.add('tile-mode');
+            localStorage.setItem('hf_displayMode', mode);
+        }
+
         function setTheme(name) {
-            // Moderne Subtil‑Themes (6 Varianten)
             const themes = {
                 light:  { '--bg-color': '#ffffff', '--text-color': '#111827', '--card-bg': '#f9fafb', '--card-border': 'rgba(0,0,0,0.1)', '--accent': '#38bdf8' },
                 dark:   { '--bg-color': '#0f172a', '--text-color': '#f1f5f9', '--card-bg': '#1e293b', '--card-border': 'rgba(56,189,248,0.2)', '--accent': '#38bdf8' },
                 blue:   { '--bg-color': '#0e1a40', '--text-color': '#e0f2fe', '--card-bg': '#1e293b', '--card-border': 'rgba(96,165,250,0.2)', '--accent': '#60a5fa' },
                 green:  { '--bg-color': '#041f13', '--text-color': '#d1fae5', '--card-bg': '#1e293b', '--card-border': 'rgba(52,211,153,0.2)', '--accent': '#34d399' },
                 purple: { '--bg-color': '#1e1b4b', '--text-color': '#e9d5ff', '--card-bg': '#1e293b', '--card-border': 'rgba(167,139,250,0.2)', '--accent': '#a78bfa' },
-                orange: { '--bg-color': '#2c1a00', '--text-color': '#ffecd5', '--card-bg': '#1e293b', '--card-border': 'rgba(251,146,60,0.2)', '--accent': '#fb923c' }
-            };
-            const theme = themes[name] || themes.dark;
-            for (const [k, v] of Object.entries(theme)) {
-                document.documentElement.style.setProperty(k, v);
-            }
+                orange: { '--bg-color': '#2c1a00', '--text-color': '#ffecd5', '--card-bg': '#1e293b', '--card-border': 'rgba(251,146,60,0.2)', '--accent': '#fb923c' },
+                                dsa:    { '--bg-color': '#f5f7fa', '--text-color': '#1f2937', '--card-bg': '#ffffff', '--card-border': 'rgba(17,24,39,0.06)', '--accent': '#0ea5e9' },
+                                saas:   { '--bg-color': '#f3f4f6', '--text-color': '#1f2937', '--card-bg': '#ffffff', '--card-border': 'rgba(17,24,39,0.08)', '--accent': '#2563eb' }
+                            };
+                            const theme = themes[name] || themes.dark;
+                            document.body.classList.toggle('dsa-design', name === 'dsa');
+                            document.body.classList.toggle('saas-market', name === 'saas');
+                            for (const [k, v] of Object.entries(theme)) {
+                                document.documentElement.style.setProperty(k, v);
+                            }
+                            // Karten bei Design-Wechsel neu rendern (SaaS-Ansicht hat eigene Kartenstruktur)
+                            if (typeof allAPIs !== 'undefined' && allAPIs.length > 0) renderAPIs(allAPIs);
+            localStorage.setItem('hf_theme', name);
         }
 
 
