@@ -1334,8 +1334,9 @@
 
         function openAdmin() {
             // Admin‑Modal mit Theme‑Auswahl, Anzeige‑Modus und praktischen Optionen
-            const modal = document.createElement('div');
-            modal.className = 'modal admin-modal';
+                    document.querySelector('.admin-modal')?.remove();
+                    const modal = document.createElement('div');
+                        modal.className = 'modal admin-modal active';
             modal.innerHTML = `
                 <div class="modal-content">
                     <div class="modal-header">Admin‑Einstellungen</div>
@@ -1516,7 +1517,17 @@
             document.getElementById('exportMenu').classList.toggle('open');
         }
 
-        function toggleMenu() {
+        function closeModal() {
+            document.getElementById('apiModal').classList.remove('active');
+            currentEditId = null;
+        }
+
+        function openDisplayMode() {
+                    document.querySelector('.admin-modal')?.remove();
+                    openAdmin();
+                }
+
+                function toggleMenu() {
             document.getElementById('drawer').classList.toggle('open');
             document.getElementById('drawerOverlay').classList.toggle('open');
         }
