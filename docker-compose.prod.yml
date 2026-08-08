@@ -27,4 +27,4 @@ volumes:
 networks:
   highfishNetwork:
     name: highfishNetwork
-    driver: bridge
+    external: true
