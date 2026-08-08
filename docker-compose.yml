@@ -1,9 +1,5 @@
 version: '3.8'
 
-networks:
-  highfishNetwork:
-    driver: bridge
-
 services:
   highfish-api-db:
     build: .
@@ -26,8 +22,6 @@ services:
     restart: unless-stopped
     labels:
       - "com.example.description=HighFish API DB - API Key Management"
-    networks:
-      - highfishNetwork
 
 volumes:
   highfish-data:
