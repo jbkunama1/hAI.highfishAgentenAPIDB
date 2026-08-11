@@ -585,10 +585,6 @@
                 padding: 12px;
             }
 
-            .stat-card {
-                min-width: 120px;
-            }
-
             .modal-content {
                 padding: 20px;
             }
@@ -740,33 +736,21 @@
             box-shadow: 0 0 0 3px var(--surface-glow);
         }
 
-        .stats {
+        .statusbar {
             display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
+            justify-content: space-between;
+            align-items: center;
             flex-wrap: wrap;
-        }
-
-        .stat-card {
-            background: var(--surface-glow);
-            border: 1px solid var(--card-border);
-            border-radius: 8px;
-            padding: 15px;
-            flex: 1;
-            min-width: 150px;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: var(--accent);
-        }
-
-        .stat-label {
-            font-size: 12px;
+            gap: 4px 16px;
+            font-size: 11px;
             color: var(--muted);
-            margin-top: 5px;
+            margin-bottom: 14px;
+            white-space: nowrap;
+        }
+
+        .statusbar strong {
+            color: var(--accent);
+            font-weight: 600;
         }
 
                 /* Design-Spezifika: Alle Themes nutzen jetzt die CSS-Variablen,
@@ -877,9 +861,6 @@
                                 /* Hellgrauer Hintergrund & weiße Flächen für das SaaS-Design */
                                 body.saas-market h1 { background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
                                 body.saas-market header { border-bottom-color: var(--card-border); }
-                                body.saas-market .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: 0 2px 8px rgba(17, 24, 39, 0.05); }
-                                body.saas-market .stat-value { color: var(--accent); }
-                                body.saas-market .stat-label { color: var(--muted); }
                                 body.saas-market .modal-content { background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: 0 20px 40px rgba(17, 24, 39, 0.15); }
                                 body.saas-market .modal-header { color: var(--text-color); border-bottom-color: var(--card-border); }
                                 body.saas-market input[type="password"], body.saas-market input[type="text"], body.saas-market textarea, body.saas-market .search-box input { background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-color); }
@@ -920,6 +901,12 @@
     <!-- Main App -->
     <div class="main-content" id="mainContent">
         <div class="container">
+            <!-- Statusleiste -->
+            <div class="statusbar" id="statusbar">
+                <span>🔑 <strong id="apiCount">0</strong> APIs</span>
+                <span>🕒 Letztes Update: <span id="lastUpdate">-</span></span>
+            </div>
+
             <!-- Header -->
             <header>
                 <div class="header-content">
@@ -944,18 +931,6 @@
                     <li><a href="#" onclick="openDisplayMode(); closeMenu();">📐 Anzeige‑Modus</a></li>
                 </ul>
             </nav>
-
-            <!-- Stats -->
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-value" id="apiCount">0</div>
-                    <div class="stat-label">APIs gespeichert</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="lastUpdate">-</div>
-                    <div class="stat-label">Letzte Aktualisierung</div>
-                </div>
-            </div>
 
             <!-- Success Message -->
             <div class="success-message" id="successMsg"></div>
@@ -1041,6 +1016,7 @@
         const API_BASE = window.location.origin + '/api';
         let currentEditId = null;
         let allAPIs = [];
+        let lastUpdated = null;
         let isAuthenticated = false;
         // API-Key für die Backend-Authentifizierung wird zur Laufzeit validiert,
         // nicht im Client hartcodiert.
@@ -1593,8 +1569,9 @@
 
         function updateStats() {
             document.getElementById('apiCount').textContent = allAPIs.length;
-            const now = new Date().toLocaleTimeString('de-DE');
-            document.getElementById('lastUpdate').textContent = now;
+            lastUpdated = new Date();
+            document.getElementById('lastUpdate').textContent = lastUpdated.toLocaleTimeString('de-DE');
+            document.getElementById('statusbar').title = 'Stand: ' + lastUpdated.toLocaleString('de-DE');
         }
 
         function showLoginError(msg) {
