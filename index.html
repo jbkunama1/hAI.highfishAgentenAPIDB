@@ -578,7 +578,22 @@
                 width: 40px;
                 height: 40px;
             }
-        }
+
+                        /* Admin modal mobile adjustments */
+                        .admin-modal .modal-content {
+                            width: 95%;
+                            max-width: none;
+                            max-height: 90vh;
+                            border-radius: 16px 16px 0 0;
+                            margin: auto 0 0 0;
+                        }
+
+                        .admin-modal .modal-body {
+                            overflow-y: auto;
+                            max-height: 60vh;
+                            padding-right: 10px;
+                        }
+                    }
 
         @media (max-width: 480px) {
             body {
@@ -587,6 +602,15 @@
 
             .modal-content {
                 padding: 20px;
+                width: 95%;
+                max-height: 90vh;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .modal-body {
+                overflow-y: auto;
+                max-height: 60vh;
             }
 
             .card-actions {
