@@ -474,6 +474,8 @@
             border-radius: 12px;
             max-width: 500px;
             width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
             border: 1px solid var(--card-border);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
@@ -484,6 +486,7 @@
             color: var(--accent);
             border-bottom: 1px solid var(--card-border);
             padding-bottom: 15px;
+            flex-shrink: 0;
         }
 
         .modal-body {
@@ -494,6 +497,7 @@
             display: flex;
             gap: 10px;
             justify-content: flex-end;
+            flex-shrink: 0;
         }
 
         .api-grid {
