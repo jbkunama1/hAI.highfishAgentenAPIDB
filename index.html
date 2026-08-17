@@ -474,8 +474,18 @@
             border-radius: 12px;
             max-width: 500px;
             width: 90%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
             border: 1px solid var(--card-border);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content form {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .modal-header {
@@ -484,16 +494,20 @@
             color: var(--accent);
             border-bottom: 1px solid var(--card-border);
             padding-bottom: 15px;
+            flex-shrink: 0;
         }
 
         .modal-body {
             margin-bottom: 25px;
+            overflow-y: auto;
+            min-height: 0;
         }
 
         .modal-footer {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
+            flex-shrink: 0;
         }
 
         .api-grid {
