@@ -475,9 +475,17 @@
             max-width: 500px;
             width: 90%;
             max-height: 90vh;
-            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
             border: 1px solid var(--card-border);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content form {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .modal-header {
@@ -491,6 +499,8 @@
 
         .modal-body {
             margin-bottom: 25px;
+            overflow-y: auto;
+            min-height: 0;
         }
 
         .modal-footer {
