@@ -326,12 +326,12 @@
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
 
         label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             color: var(--muted-2);
             font-size: 14px;
             font-weight: 500;
@@ -341,7 +341,7 @@
         input[type="text"],
         textarea {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             background: var(--input-bg);
             border: 1px solid var(--card-border);
             border-radius: 6px;
@@ -359,7 +359,7 @@
 
         textarea {
             resize: vertical;
-            min-height: 80px;
+            min-height: 60px;
             font-family: monospace;
         }
 
@@ -470,7 +470,7 @@
 
         .modal-content {
             background: var(--card-bg);
-            padding: 30px;
+            padding: 16px;
             border-radius: 12px;
             max-width: 500px;
             width: 90%;
@@ -489,16 +489,16 @@
         }
 
         .modal-header {
-            font-size: 22px;
-            margin-bottom: 20px;
+            font-size: 17px;
+            margin-bottom: 12px;
             color: var(--accent);
             border-bottom: 1px solid var(--card-border);
-            padding-bottom: 15px;
+            padding-bottom: 10px;
             flex-shrink: 0;
         }
 
         .modal-body {
-            margin-bottom: 25px;
+            margin-bottom: 14px;
             overflow-y: auto;
             min-height: 0;
         }
@@ -508,6 +508,22 @@
             gap: 10px;
             justify-content: flex-end;
             flex-shrink: 0;
+        }
+
+        .admin-modal h3 {
+            font-size: 13px;
+            margin: 12px 0 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .admin-modal .modal-body button {
+            padding: 8px 12px;
+            font-size: 13px;
+            border-radius: 6px;
+            width: 100%;
+            margin-bottom: 6px;
+            text-align: left;
         }
 
         .api-grid {
@@ -968,7 +984,6 @@
                 <ul>
                     <li><a href="#" onclick="openAddModal(); closeMenu();">＋ Neue API</a></li>
                     <li><a href="#" onclick="openAdmin(); closeMenu();">⚙️ Admin‑Einstellungen</a></li>
-                    <li><a href="#" onclick="openDisplayMode(); closeMenu();">📐 Anzeige‑Modus</a></li>
                 </ul>
             </nav>
 
@@ -1341,24 +1356,6 @@
 
 
 
-        function openTheme() {
-            // Platzhalter‑Modal – später Theme‑Auswahl einbauen
-            const modal = document.createElement('div');
-            modal.className = 'modal theme-modal';
-            modal.innerHTML = `
-                <div class="modal-content">
-                    <div class="modal-header">Theme‑Auswahl</div>
-                    <div class="modal-body">
-                        <p>Wähle ein Theme aus (z. B. Licht/Dunkel).</p>
-                        <button class="btn-primary" onclick="setTheme('light')">Helles Theme</button>
-                        <button class="btn-primary" onclick="setTheme('dark')">Dunkles Theme</button>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn-primary" onclick="document.querySelector('.theme-modal').remove()">Schließen</button>
-                    </div>
-                </div>`;
-            document.body.appendChild(modal);
-        }
         
         function setDisplayMode(mode) {
             const grid = document.getElementById('apiContainer');
@@ -1487,10 +1484,6 @@
             currentEditId = null;
         }
 
-        function openDisplayMode() {
-                    document.querySelector('.admin-modal')?.remove();
-                    openAdmin();
-                }
 
                 function toggleMenu() {
             document.getElementById('drawer').classList.toggle('open');
