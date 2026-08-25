@@ -1,4 +1,4 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
   highfish-api-db:
@@ -19,6 +19,7 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     volumes:
       - highfish-data:/data
+      - highfish-backups:/backups
     restart: unless-stopped
     labels:
       - "com.example.description=HighFish API DB - API Key Management"
@@ -26,8 +27,15 @@ services:
 volumes:
   highfish-data:
     driver: local
+  highfish-backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/backups/highfish-db
 
 networks:
   highfishNetwork:
     name: highfishNetwork
     external: true
+
