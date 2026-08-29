@@ -884,24 +884,9 @@
                                     transition: all .2s;
                                 }
                                 body.saas-market .mk-iconbtn:hover { border-color: var(--accent); color: var(--accent); }
-                                body.saas-market .mk-install {
-                                    background: var(--accent);
-                                    color: var(--bg-color);
-                                    border: none;
-                                    border-radius: 8px;
-                                    padding: 8px 14px;
-                                    font-size: 13px;
-                                    font-weight: 600;
-                                    cursor: pointer;
-                                    display: inline-flex;
-                                    align-items: center;
-                                    gap: 6px;
-                                    transition: all .2s;
-                                }
-                                body.saas-market .mk-install:hover { background: var(--accent-2); box-shadow: 0 4px 12px var(--glow-strong); }
-                                body.saas-market .mk-arrow { font-size: 15px; line-height: 1; }
+                                                                body.saas-market .mk-arrow { font-size: 15px; line-height: 1; }
 
-                                body.saas-market .mk-foot { border-top: 1px solid var(--card-border); padding-top: 10px; display: flex; gap: 8px; }
+                                                                body.saas-market .mk-foot { border-top: 1px solid var(--card-border); padding-top: 10px; display: flex; gap: 8px; }
                                 body.saas-market .mk-ghost {
                                     background: none;
                                     border: none;
@@ -933,6 +918,12 @@
                                 body.saas-market .login-container { background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: 0 20px 60px rgba(17, 24, 39, 0.12); }
                                 body.saas-market .login-container h2 { color: var(--accent); }
                                 body.saas-market .empty-state { color: var(--muted); }
+                                a[href]:not(.mk-globe)::before {
+                                    content: "🔗"; /* You can choose a different emoji here */
+                                    margin-right: 5px;
+                                    display: inline-block;
+                                    text-decoration: none;
+                                }
                             </style>
 </head>
 <body>
@@ -1235,9 +1226,8 @@
                                                         <div class="mk-tools">Kategorie: ${escapeHtml(api.category || 'N/A')}</div>
                                                             <span class="category-badge cat-${escapeHtml(api.category || 'default')}">${escapeHtml(cat)}</span>
                                                             <div class="mk-actions">
-                                                                <button type="button" class="mk-iconbtn" onclick="copyToClipboard(${api.id})" title="API-Key kopieren">📋</button>
-                                                                <button type="button" class="mk-install" onclick="openApi(${api.id})">Install<span class="mk-arrow">→</span></button>
-                                                            </div>
+                                                                                                                            <button type="button" class="mk-iconbtn" onclick="openApi(${api.id})" title="${api.url ? 'Externen Link öffnen' : 'API-Key kopieren'}">${api.url ? '🌐' : '📋'}</button>
+                                                                                                                        </div>
                                                         </div>
                             <div class="mk-foot">
                                 <button type="button" class="mk-ghost" onclick="editAPI(${api.id})">Bearbeiten</button>
@@ -1278,9 +1268,10 @@
                                 <div class="api-name">${escapeHtml(api.name)}</div>
                                 ${api.category ? `<span class="category-badge cat-${escapeHtml(api.category)}">${escapeHtml(api.category)}</span>` : ''}
                             </div>
-                            ${api.url ? `<div style="color: var(--muted); font-size: 12px; margin-bottom: 10px;">
-                                                            <strong>URL:</strong> <code style="background: var(--surface-2); padding: 2px 4px; border-radius: 3px;">${escapeHtml(api.url)}</code>
-                            </div>` : ''}
+                            ${api.url ? `<div style="color: var(--muted); font-size: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                                                                                        <span title="Externer Link">🔗</span>
+                                                                                        <strong>URL:</strong> <code style="background: var(--surface-2); padding: 2px 4px; border-radius: 3px;">${escapeHtml(api.url)}</code>
+                                                        </div>` : ''}
                             <div class="api-key">
                                 <span id="key-${api.id}" style="flex: 1; word-break: break-all;">••••••••</span>
                                 <button type="button" class="copy-btn" onclick="toggleKeyVisibility(${api.id})" title="Anzeigen/Verbergen">👁️</button>

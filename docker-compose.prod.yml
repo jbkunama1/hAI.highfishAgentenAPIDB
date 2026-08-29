@@ -1,4 +1,4 @@
-services:
+﻿services:
   highfish-api-db:
     image: ghcr.io/jbkunama1/hai.highfishagentenapidb:latest
     container_name: highfish-api-db
@@ -12,10 +12,11 @@ services:
       - API_KEY=${API_KEY:-}
       - AUTH_USER=${AUTH_USER:-}
       - AUTH_PASSWORD=${AUTH_PASSWORD:-}
-      # CORS-Whitelist an deine tatsächliche Domain anpassen
+      # CORS-Whitelist an deine tatsÃ¤chliche Domain anpassen
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     volumes:
       - highfish-data:/data
+      - highfish-backups:/backups
     restart: unless-stopped
     networks:
       - highfishNetwork
@@ -23,8 +24,15 @@ services:
 volumes:
   highfish-data:
     driver: local
+  highfish-backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/backups/highfish-db
 
 networks:
   highfishNetwork:
     name: highfishNetwork
     external: true
+
