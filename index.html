@@ -984,9 +984,13 @@
             <!-- Controls -->
             <div class="controls">
                 <button class="btn-primary" onclick="openAddModal()">+ Neue API</button>
-                <div class="export-dropdown">
-                    <button class="btn-secondary" onclick="toggleExportMenu()">📥 Exportieren ▾</button>
-                    <div class="export-menu" id="exportMenu">
+                <div class="import-export-controls">
+                    <button class="btn-secondary" onclick="toggleImportExportMenu()">📥 Import/Export ▾</button>
+                    <div class="export-menu" id="importExportMenu" style="display:none; position:absolute; z-index:100; background:var(--bg-color); border:1px solid var(--card-border); padding:10px; border-radius:8px; box-shadow:0 4px 12px var(--glow);">
+                        <div style="font-weight:bold; margin-bottom:5px;">📥 Import</div>
+                        <button onclick="document.getElementById('importFile').click()">📂 JSON-Datei importieren</button>
+                        <input type="file" id="importFile" style="display:none" onchange="importAPIs(event)">
+                        <div style="font-weight:bold; margin-top:10px; margin-bottom:5px;">📤 Export</div>
                         <button onclick="exportAPIs('json')">📄 JSON</button>
                         <button onclick="exportAPIs('md')">📝 Markdown</button>
                         <button onclick="exportAPIs('pdf')">📕 PDF</button>
@@ -1484,6 +1488,38 @@
         function closeMenu() {
             document.getElementById('drawer').classList.remove('open');
             document.getElementById('drawerOverlay').classList.remove('open');
+        }
+
+        function toggleImportExportMenu() {
+            const menu = document.getElementById('importExportMenu');
+            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function importAPIs(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const json = JSON.parse(e.target.result);
+                    if (!Array.isArray(json)) throw new Error('Kein gültiges JSON-Array');
+                    
+                    const response = await fetch(`${API_BASE}/import`, {
+                        method: 'POST',
+                        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                        body: JSON.stringify(json)
+                    });
+                    
+                    if (!response.ok) throw new Error('Import fehlgeschlagen');
+                    showSuccess('APIs erfolgreich importiert');
+                    location.reload();
+                } catch (err) {
+                    console.error(err);
+                    showLoginError('Import fehlgeschlagen: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
         }
 
         // Exportieren: JSON, Markdown oder PDF
