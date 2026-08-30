@@ -11,9 +11,6 @@ jobs:
     permissions:
       contents: read
 
-    permissions:
-      contents: read
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
