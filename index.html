@@ -984,18 +984,6 @@
             <!-- Controls -->
             <div class="controls">
                 <button class="btn-primary" onclick="openAddModal()">+ Neue API</button>
-                <div class="import-export-controls">
-                    <button class="btn-secondary" onclick="toggleImportExportMenu()">📥 Import/Export ▾</button>
-                    <div class="export-menu" id="importExportMenu" style="display:none; position:absolute; z-index:100; background:var(--bg-color); border:1px solid var(--card-border); padding:10px; border-radius:8px; box-shadow:0 4px 12px var(--glow);">
-                        <div style="font-weight:bold; margin-bottom:5px;">📥 Import</div>
-                        <button onclick="document.getElementById('importFile').click()">📂 JSON-Datei importieren</button>
-                        <input type="file" id="importFile" style="display:none" onchange="importAPIs(event)">
-                        <div style="font-weight:bold; margin-top:10px; margin-bottom:5px;">📤 Export</div>
-                        <button onclick="exportAPIs('json')">📄 JSON</button>
-                        <button onclick="exportAPIs('md')">📝 Markdown</button>
-                        <button onclick="exportAPIs('pdf')">📕 PDF</button>
-                    </div>
-                </div>
                 <div class="search-box">
                     <input type="text" id="searchInput" placeholder="Nach API-Name suchen..." onkeyup="filterAPIs()">
                 </div>
@@ -1335,11 +1323,10 @@
                             <button class="btn-primary" onclick="sortAPIs()">APIs alphabetisch sortieren</button>
                             <button class="btn-primary" onclick="toggleApiKeys()">API‑Keys ein/ausblenden</button>
                         </div>
-                                                <h3>Export</h3>
+                        <h3>Datenverwaltung</h3>
                                                 <div class="action-options">
-                                                    <button class="btn-primary" onclick="exportAPIs('json')">JSON exportieren</button>
-                                                    <button class="btn-primary" onclick="exportAPIs('md')">Markdown exportieren</button>
-                                                    <button class="btn-primary" onclick="exportAPIs('pdf')">PDF exportieren</button>
+                                                    <button class="btn-secondary" onclick="document.getElementById('importFile').click()">Daten importieren</button>
+                                                    <input type="file" id="importFile" style="display:none" accept=".json" onchange="validateAndImportAPIs(event)">
                                                 </div>
                     </div>
                     <div class="modal-footer">
@@ -1490,12 +1477,7 @@
             document.getElementById('drawerOverlay').classList.remove('open');
         }
 
-        function toggleImportExportMenu() {
-            const menu = document.getElementById('importExportMenu');
-            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-        }
-
-        async function importAPIs(event) {
+        async function validateAndImportAPIs(event) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -1505,22 +1487,27 @@
                     const json = JSON.parse(e.target.result);
                     if (!Array.isArray(json)) throw new Error('Kein gültiges JSON-Array');
                     
-                    const response = await fetch(`${API_BASE}/import`, {
-                        method: 'POST',
-                        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-                        body: JSON.stringify(json)
-                    });
+                            // Einfache Validierung: Prüfen ob mind. ein Eintrag name/apiKey hat
+                            if (json.length === 0 || !json[0].name || !json[0].apiKey) {
+                                throw new Error('Datei enthält keine gültigen API-Daten (name und apiKey erforderlich)');
+                            }
                     
-                    if (!response.ok) throw new Error('Import fehlgeschlagen');
-                    showSuccess('APIs erfolgreich importiert');
-                    location.reload();
-                } catch (err) {
-                    console.error(err);
-                    showLoginError('Import fehlgeschlagen: ' + err.message);
+                            const response = await fetch(`${API_BASE}/import`, {
+                                method: 'POST',
+                                headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                                body: JSON.stringify(json)
+                            });
+                    
+                            if (!response.ok) throw new Error('Import fehlgeschlagen');
+                            showSuccess('APIs erfolgreich importiert');
+                            location.reload();
+                        } catch (err) {
+                            console.error(err);
+                            showLoginError('Import fehlgeschlagen: ' + err.message);
+                        }
+                    };
+                    reader.readAsText(file);
                 }
-            };
-            reader.readAsText(file);
-        }
 
         // Exportieren: JSON, Markdown oder PDF
         async function exportAPIs(format) {
@@ -1674,3 +1661,5 @@
     </script>
 </body>
 </html>
+
+
