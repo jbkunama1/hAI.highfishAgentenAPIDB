@@ -7,30 +7,19 @@
         <title>HighFish API DB - API Management</title>
     <style>
         :root {
-            --cat-llm: #f87171;
-            --cat-picture: #fb923c;
-            --cat-media: #fbbf24;
-            --cat-video: #34d399;
-            --cat-security: #818cf8;
-            --cat-github: #a78bfa;
-            --cat-google: #f472b6;
-            --cat-other: #94a3b8;
-            /* Theme colors */
-            --bg-color: #0f172a;
-            --text-color: #f1f5f9;
-            --card-bg: #1e293b;
-            --card-border: rgba(56, 189, 248, 0.2);
-            --accent: #38bdf8;
-            --accent-2: #06b6d4;
-            /* Derived: kept variable-driven so every theme is consistent */
-            --input-bg: #0f172a;
-            --muted: #94a3b8;
-            --muted-2: #cbd5e1;
-            --drawer-bg: #1e293b;
-            --surface-2: #334155;
-            --surface-2-hover: #475569;
-            --surface-glow: rgba(56, 189, 248, 0.1);
-            --glow-strong: rgba(56, 189, 248, 0.3);
+            --bg-deep: #0b0e17;
+            --panel-bg: #121729;
+            --panel-sec: #171e33;
+            --border-color: rgba(255,255,255,0.08);
+            --text-main: #eef1fb;
+            --text-muted: #9aa3c0;
+            --accent-1: #7c5cff;
+            --accent-2: #ff5c8a;
+            --accent-3: #24d1c4;
+            --accent-4: #ffb84c;
+            --radius-lg: 22px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
         }
 
         .category-badge {
@@ -62,10 +51,113 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: var(--bg-color, linear-gradient(135deg, #0f172a 0%, #1e293b 100%));
-            color: var(--text-color, #f1f5f9);
+            background: var(--bg-deep);
+            color: var(--text-main);
             min-height: 100vh;
             padding: 20px;
+        }
+
+        /* Glassmorphism Panels */
+        .panel {
+            background: rgba(18, 23, 41, 0.85);
+            backdrop-filter: blur(18px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+            padding: 24px;
+        }
+
+        /* Buttons & Inputs */
+        button, .btn {
+            border-radius: 999px; /* Pills */
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        input, textarea {
+            background: var(--panel-sec);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-main);
+            padding: 10px 14px;
+        }
+        
+        input:focus, textarea:focus {
+            box-shadow: 0 0 0 3px rgba(124,92,255,0.25);
+            border-color: var(--accent-1);
+            outline: none;
+        }
+        
+        /* Animated background blobs */
+        .bg-blobs {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .bg-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            opacity: 0.4;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .bg-blob-1 {
+            width: 400px;
+            height: 400px;
+            top: -100px;
+            right: -100px;
+            background: radial-gradient(circle, var(--accent-1), transparent);
+            animation-delay: 0s;
+        }
+
+        .bg-blob-2 {
+            width: 300px;
+            height: 300px;
+            bottom: -50px;
+            left: -50px;
+            background: radial-gradient(circle, var(--accent-2), transparent);
+            animation-delay: -7s;
+        }
+
+        .bg-blob-3 {
+            width: 250px;
+            height: 250px;
+            top: 40%;
+            left: 50%;
+            background: radial-gradient(circle, var(--accent-3), transparent);
+            animation-delay: -14s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            25% { transform: translate(30px, -20px) scale(1.05); }
+            50% { transform: translate(-20px, 30px) scale(0.95); }
+            75% { transform: translate(10px, 20px) scale(1.02); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.6s ease-out forwards;
         }
 
         .container {
