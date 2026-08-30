@@ -1,22 +1,19 @@
-# hAI · HighFish Agenten API DB
+# 🚀 hAI · HighFish Agenten API DB
 [![Status](https://img.shields.io/badge/status-active-brightgreen?style=for-the-badge)](https://github.com/jbkunama1/hAI.highfishAgentenAPIDB)
 [![WebApp](https://img.shields.io/badge/WebApp-Responsive-0f766e?style=for-the-badge&logo=html5&logoColor=white)](https://github.com/jbkunama1/hAI.highfishAgentenAPIDB)
 [![API](https://img.shields.io/badge/API-Manager-6f42c1?style=for-the-badge&logo=api&logoColor=white)](https://github.com/jbkunama1/hAI.highfishAgentenAPIDB)
 [![DarkTheme](https://img.shields.io/badge/Theme-Dark-222222?style=for-the-badge&logo=darkreader&logoColor=white)](https://github.com/jbkunama1/hAI.highfishAgentenAPIDB)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-
-
-
 [![Buy me a coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/highfish)
 
-> Leichtgewichtige SQLite-basierte API-Schlüsselverwaltung für KI-Agenten-Infrastrukturen – containerisiert, sofort einsatzbereit.
+> Leichtgewichtige SQLite-basierte API-Schluesselverwaltung fuer KI-Agenten-Infrastrukturen – containerisiert, sofort einsatzbereit.
 
 ![HighFish API DB Logo](highfishapidblogo.png)
 
 ---
 
-## Inhalt
+## 📚 Inhalt
 
 - [Überblick](#überblick)
 - [Features](#features)
@@ -37,33 +34,33 @@
 
 ---
 
-## Überblick
+## 📖 Überblick
 
-**HighFish Agenten API DB** ist ein schlankes Node.js/Express-Backend zur zentralen Verwaltung von API-Endpunkten und API-Keys für KI-Agenten (z. B. OpenAI, lokale LLMs, Webhooks). Die Daten werden in einer SQLite-Datenbank gespeichert und über eine REST-API exponiert. Ein Web-UI (`index.html`) ist bereits integriert.
+**HighFish Agenten API DB** ist ein schlankes Node.js/Express-Backend zur zentralen Verwaltung von API-Endpunkten und API-Keys fuer KI-Agenten (z. B. OpenAI, lokale LLMs, Webhooks). Die Daten werden in einer SQLite-Datenbank gespeichert und ueber eine REST-API exponiert. Ein Web-UI (`index.html`) ist bereits integriert.
 
 ---
 
-## Features
+## 📖 Features
 
-- ✅ CRUD für API-Einträge (Name, URL, API-Key, Notizen)
-- ✅ **JSON-Export** aller Einträge
+- ✅ CRUD fuer API-Eintraege (Name, URL, API-Key, Notizen)
+- ✅ **JSON-Export** aller Eintraege
 - ✅ **Text-Import** (semikolongetrennt, Batch)
 - ✅ Rate Limiting (100 Anfragen/min pro IP)
 - ✅ **Authentifizierung** auf allen API-Endpunkten (Bearer-Token oder Basic Auth)
 - ✅ **CI/CD** – automatischer Docker-Build per GitHub Actions (bei Push + manuell)
-- ✅ Docker-ready (inkl. Volume-Persistenz, läuft als non-root)
+- ✅ Docker-ready (inkl. Volume-Persistenz, laeuft als non-root)
 - ✅ Integriertes Web-UI
 
 ---
 
-## Schnellstart
+## 🚀 Schnellstart
 
 ```bash
 # Repository klonen
 git clone https://github.com/jbkunama1/hAI.highfishAgentenAPIDB.git
 cd hAI.highfishAgentenAPIDB
 
-# Abhängigkeiten installieren
+# Abhaengigkeiten installieren
 npm install
 
 # Entwicklungsserver starten (Port 3000) – mit API-Key absichern
@@ -72,13 +69,13 @@ API_KEY=geheimer-schluessel node server.js
 
 Aufruf im Browser: `http://localhost:3000`
 
-> Im Web-UI loggst du dich mit deinem **API-Key** ein (der eingegebene Wert wird gegen das Backend geprüft). Setze dafür vor dem Start die Env-Variable `API_KEY` (siehe [umgebungsvariablen](#umgebungsvariablen)).
+> Im Web-UI loggst du dich mit deinem **API-Key** ein (der eingegebene Wert wird gegen das Backend geprueft). Setze dafuer vor dem Start die Env-Variable `API_KEY` (sieh [umgebungsvariablen](#umgebungsvariablen)).
 
 ---
 
-## Docker-Deployment
+## 🐳 Docker-Deployment
 
-> ⚠️ Setze in Produktion immer einen **API-Key**, sonst sind die Endpunkte ungeschützt (siehe [Authentifizierung](#authentifizierung)).
+> ⚠️ Setze in Produktion immer einen **API-Key**, sonst sind die Endpunkte ungeschuetzt (sieh [Authentifizierung](#authentifizierung)).
 
 ### Mit docker-compose (empfohlen)
 
@@ -89,7 +86,7 @@ echo "API_KEY=geheimer-schluessel" > .env
 docker compose up -d
 ```
 
-Die Datenbank wird im Volume `highfish-data` persistiert (`/data/highfish.db` im Container). Die Variablen aus `.env` werden von `docker-compose.yml` automatisch übernommen (`API_KEY`, `AUTH_USER`, `AUTH_PASSWORD`, `ALLOWED_ORIGINS`).
+Die Datenbank wird im Volume `highfish-data` persistiert (`/data/highfish.db` im Container). Die Variablen aus `.env` werden von `docker-compose.yml` automatisch uebernommen (`API_KEY`, `AUTH_USER`, `AUTH_PASSWORD`, `ALLOWED_ORIGINS`).
 
 ### Manuell
 
@@ -112,7 +109,7 @@ Ein [GitHub Actions Workflow](.github/workflows/docker-build.yml) baut das Image
 
 ### In Portainer
 
-Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI-Workflow gebaut. Für Portainer gibt es eine spezielle Datei **`docker-compose.prod.yml`**, die das fertige Image nutzt (statt lokal zu bauen).
+Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI-Workflow gebaut. Fuer Portainer gibt es eine spezielle Datei **`docker-compose.prod.yml`**, die das fertige Image nutzt (statt lokal zu bauen).
 
 **Schritt 1 – GHCR-Registry hinterlegen (nur bei privatem Paket)**
 
@@ -125,7 +122,7 @@ Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI
    - **Token:** der erstellte Personal Access Token
 3. Speichern
 
-> Ist das Container-Paket **öffentlich** (`github.com/jbkunama1/hAI.highfishAgentenAPIDB/pkgs/container/hai.highfishagentenapidb` → Settings → Change visibility), entfällt dieser Schritt.
+> Ist das Container-Paket **oeffentlich** (`github.com/jbkunama1/hAI.highfishAgentenAPIDB/pkgs/container/hai.highfishagentenapidb` → Settings → Change visibility), entfaellt dieser Schritt.
 
 **Schritt 2 – Stack aus dem Repository anlegen**
 
@@ -143,7 +140,7 @@ Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI
    | `AUTH_USER` / `AUTH_PASSWORD` | optional |
 6. **Deploy the stack**
 
-**Schritt 3 – prüfen**
+**Schritt 3 – pruefen**
 
 - Container innerhalb von ~30 s **healthy** (Healthcheck via `curl /api/health`)
 - `curl http://<server-ip>:3000/api/health` → `{"status":"ok",...}`
@@ -153,21 +150,21 @@ Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI
 
 ---
 
-## API-Referenz
+## 🌐 API-Referenz
 
 Basis-URL: `http://<host>:3000`
 
-> **Authentifizierung:** Alle Endpunkte außer `/api/health` erfordern einen Auth-Header:
-> - **Bearer-Token:** `Authorization: Bearer <API_KEY>`
+> **Authentifizierung:** Alle Endpunkte ausser `/api/health` erfordern einen Auth-Header:
+> - **Bearer-Token:** `Authorization: ******
 > - **Basic Auth:** `Authorization: Basic base64(Benutzer:Passwort)`
 >
-> Ohne gültigen Key antwortet der Server mit `401 Unauthorized`.
+> Ohne gueltigen Key antwortet der Server mit `401 Unauthorized`.
 
 ---
 
-### Einträge abrufen
+### Eintraege abrufen
 
-#### Alle Einträge
+#### Alle Eintraege
 
 ```
 GET /api/entries
@@ -228,7 +225,7 @@ Content-Type: application/json
 
 ---
 
-### Eintrag löschen
+### Eintrag loeschen
 
 ```
 DELETE /api/entries/:id
@@ -243,7 +240,7 @@ DELETE /api/entries/:id
 
 ### Export
 
-Exportiert alle Einträge als JSON-Array (ohne `id`, `created_at`, `updated_at`):
+Exportiert alle Eintraege als JSON-Array (ohne `id`, `created_at`, `updated_at`):
 
 ```
 GET /api/export
@@ -260,7 +257,7 @@ GET /api/export
 
 ### Import (Text-Format)
 
-Importiert mehrere Einträge auf einmal im semikolongetrennten Format.
+Importiert mehrere Eintraege auf einmal im semikolongetrennten Format.
 
 ```
 POST /api/import-text
@@ -283,9 +280,9 @@ Content-Type: application/json
 ```
 
 **Hinweise:**
-- Zeilen mit fehlendem `name`, `url` oder `apiKey` werden übersprungen
-- `notes` ist optional; mehrere `;` im Notizfeld werden korrekt zusammengeführt
-- Duplikate werden **nicht** geprüft – bei Bedarf vor dem Import exportieren und bereinigen
+- Zeilen mit fehlendem `name`, `url` oder `apiKey` werden uebersprungen
+- `notes` ist optional; mehrere `;` im Notizfeld werden korrekt zusammengefuehrt
+- Duplikate werden **nicht** geprueft – bei Bedarf vor dem Import exportieren und bereinigen
 
 ---
 
@@ -302,7 +299,7 @@ GET /api/health
 
 ---
 
-## Datenstruktur
+## 🏗️ Datenstruktur
 
 Tabelle: `api_entries`
 
@@ -311,33 +308,33 @@ Tabelle: `api_entries`
 | `id` | INTEGER (PK, AUTO) | Automatische ID |
 | `name` | TEXT (NOT NULL) | Anzeigename des Dienstes |
 | `url` | TEXT (NOT NULL) | API-Endpunkt-URL |
-| `apiKey` | TEXT (NOT NULL) | API-Schlüssel |
+| `apiKey` | TEXT (NOT NULL) | API-Schluessel |
 | `notes` | TEXT | Optionale Notizen |
 | `created_at` | DATETIME | Erstellungszeitpunkt |
-| `updated_at` | DATETIME | Letzte Änderung |
+| `updated_at` | DATETIME | Letzte Aenderung |
 
 ---
 
-## Umgebungsvariablen
+## 🛠️ Umgebungsvariablen
 
 | Variable | Standard | Beschreibung |
 |----------|----------|--------------|
 | `PORT` | `3000` | HTTP-Port des Servers |
 | `DB_PATH` | `./data/highfish.db` (dev) / `/data/highfish.db` (prod) | Pfad zur SQLite-Datei |
 | `NODE_ENV` | – | `production` aktiviert den Docker-Datenpfad |
-| `API_KEY` | – | API-Key für Bearer-Token-Authentifizierung (empfohlen) |
+| `API_KEY` | – | API-Key fuer Bearer-Token-Authentifizierung (empfohlen) |
 | `AUTH_USER` / `AUTH_PASSWORD` | – | Alternativ: Basic-Auth-Zugangsdaten |
 | `ALLOWED_ORIGINS` | `http://localhost:3000` | Kommagetrennte CORS-Whitelist |
 
 ### Authentifizierung
 
-Alle `/api`-Routen außer `/api/health` sind **geschützt**. Setze mindestens eine der folgenden Optionen:
+Alle `/api`-Routen ausser `/api/health` sind **geschuetzt**. Setze mindestens eine der folgenden Optionen:
 
 **Option 1 – Bearer-Token:**
 ```bash
 API_KEY=geheimer-schluessel
 # Anfrage:
-curl -H "Authorization: Bearer geheimer-schluessel" http://localhost:3000/api/entries
+curl -H "Authorization: ******" http://localhost:3000/api/entries
 ```
 
 **Option 2 – Basic Auth:**
@@ -348,15 +345,14 @@ AUTH_PASSWORD=geheim
 curl -u admin:geheim http://localhost:3000/api/entries
 ```
 
-**Wichtig:** Ohne gesetzten `API_KEY`/`AUTH_*` sind die Routen weiterhin offen. Setze die Variablen in Produktion immer! In `docker-compose.yml` werden die Variablen bereits aus der lokalen `.env` übernommen.
+**Wichtig:** Ohne gesetzten `API_KEY`/`AUTH_*` sind die Routen weiterhin offen. Setze die Variablen in Produktion immer! In `docker-compose.yml` werden die Variablen bereits aus der lokalen `.env` uebernommen.
 
 ---
 
-## Lizenz
+## 📄 Lizenz
 
-MIT – siehe [LICENSE](LICENSE)
+MIT – sieh [LICENSE](LICENSE)
 
 ---
 
 *Teil der **hAI · HighFish** Infrastruktur – selbstgehostete KI-Agenten-Verwaltung.*
-

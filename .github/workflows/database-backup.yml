@@ -1,0 +1,37 @@
+name: Daily Database Backup
+
+on: 
+  schedule:
+    - cron: '0 0 * * *' # Run once every day at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install dependencies
+      run: npm install # Install dependencies if your backup script needs them
+
+    - name: Perform Database Dump
+      run: |        
+        # Example: if using SQLite and the database file is in a mounted volume
+        # You would need to ensure your runner has access to the mounted volume
+        # and the necessary database tools (e.g., sqlite3)
+        # For this example, we'll assume a simple copy of a local file.
+        # In a real scenario, you'd execute a command like:
+        # docker exec <your-db-container-name> pg_dump -U <user> <dbname> > /mounted/path/dump.sql
+        
+        # For now, let's just create a dummy file to simulate a backup
+        echo "Simulating a daily database dump..." > /tmp/db_dump_$(date +%Y%m%d%H%M%S).sql
+        ls -la /tmp/
