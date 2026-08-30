@@ -1218,7 +1218,8 @@
                                                         <div class="mk-tools">Kategorie: ${escapeHtml(api.category || 'N/A')}</div>
                                                             <span class="category-badge cat-${escapeHtml(api.category || 'default')}">${escapeHtml(cat)}</span>
                                                             <div class="mk-actions">
-                                                                                                                            <button type="button" class="mk-iconbtn" onclick="openApi(${api.id})" title="${api.url ? 'Externen Link öffnen' : 'API-Key kopieren'}">${api.url ? '🌐' : '📋'}</button>
+                                                                                                                            <button type="button" class="mk-iconbtn" onclick="if (api.url) { window.open(api.url, '_blank', 'noopener'); } else { copyToClipboard(api.id); }" title="${api.url ? 'Externen Link öffnen' : 'API-Key kopieren'}">${api.url ? '🌐' : '📋'}</button>
+                                                                                                                        ${api.apiKey ? `<button type="button" class="mk-iconbtn" onclick="copyToClipboard(${api.id})" title="API-Key kopieren">📋</button>` : ''}
                                                                                                                         </div>
                                                         </div>
                             <div class="mk-foot">
@@ -1231,12 +1232,30 @@
                 function openApi(id) {
                     const api = allAPIs.find(a => a.id === id);
                     if (!api) return;
-                    // "Install" öffnet die hinterlegte URL bzw. kopiert bei fehlender URL den API-Key
                     if (api.url) { window.open(api.url, '_blank', 'noopener'); }
-                    else { copyToClipboard(id); }
+                    else if (api.apiKey) { copyToClipboard(id); }
                 }
 
+                let showApiKeys = false;
+                let currentSortOrder = localStorage.getItem('hf_sortOrder') || 'alphabetical';
+                let currentSortDirection = localStorage.getItem('hf_sortDirection') || 'asc';
+
                 function renderAPIs(apis) {
+                    let sortedAPIs = [...apis];
+                    if (currentSortOrder === 'alphabetical') {
+                        sortedAPIs.sort((a, b) => {
+                            const nameA = a.name.toUpperCase();
+                            const nameB = b.name.toUpperCase();
+                            if (currentSortDirection === 'asc') {
+                                return (nameA < nameB) ? -1 : (nameA > nameB) ? 1 : 0;
+                            } else {
+                                return (nameA > nameB) ? -1 : (nameA < nameB) ? 1 : 0;
+                            }
+                        });
+                    }
+                    // Add other sorting options here if needed later
+
+                    apis = sortedAPIs;
                     const container = document.getElementById('apiContainer');
                     const empty = document.getElementById('emptyState');
 
@@ -1261,12 +1280,11 @@
                                 ${api.category ? `<span class="category-badge cat-${escapeHtml(api.category)}">${escapeHtml(api.category)}</span>` : ''}
                             </div>
                             ${api.url ? `<div style="color: var(--muted); font-size: 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
-                                                                                        <span title="Externer Link">🔗</span>
+                                                                                        <span title="Externer Link">🔗🌐</span>
                                                                                         <strong>URL:</strong> <code style="background: var(--surface-2); padding: 2px 4px; border-radius: 3px;">${escapeHtml(api.url)}</code>
                                                         </div>` : ''}
-                            <div class="api-key">
-                                <span id="key-${api.id}" style="flex: 1; word-break: break-all;">••••••••</span>
-                                <button type="button" class="copy-btn" onclick="toggleKeyVisibility(${api.id})" title="Anzeigen/Verbergen">👁️</button>
+                            <div class="api-key" style="${showApiKeys ? '' : 'display:none;'}">
+                                <span id="key-${api.id}" style="flex: 1; word-break: break-all;">${escapeHtml(api.apiKey || 'Kein Key')}</span>
                                 <button type="button" class="copy-btn" onclick="copyToClipboard(${api.id})" title="Kopieren">📋</button>
                             </div>
                             ${api.notes ? `<div class="api-notes">${escapeHtml(api.notes)}</div>` : ''}
