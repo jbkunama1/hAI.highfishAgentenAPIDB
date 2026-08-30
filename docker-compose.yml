@@ -24,8 +24,27 @@ services:
     labels:
       - "com.example.description=HighFish API DB - API Key Management"
 
+  highfish-telegram-bot:
+    build: ./bot
+    container_name: highfish-telegram-bot
+    networks:
+      - highfishNetwork
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - ADMIN_TELEGRAM_ID=${ADMIN_TELEGRAM_ID:-}
+      - DB_PATH=/data/bot.db
+      - API_BASE_URL=http://highfish-api-db:3000
+      - API_KEY=${API_KEY:-}
+    volumes:
+      - bot-data:/data
+    restart: unless-stopped
+    labels:
+      - "com.example.description=HighFish Telegram Admin Bot"
+
 volumes:
   highfish-data:
+    driver: local
+  bot-data:
     driver: local
   highfish-backups:
     driver: local
