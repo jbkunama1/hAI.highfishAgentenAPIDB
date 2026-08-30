@@ -110,7 +110,7 @@ Ein [GitHub Actions Workflow](.github/workflows/docker-build.yml) baut das Image
 
 ### In Portainer
 
-Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI-Workflow gebaut. Fuer Portainer gibt es eine spezielle Datei **`docker-compose.prod.yml`**, die das fertige Image nutzt (statt lokal zu bauen).
+Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI-Workflow gebaut. Fuer Portainer wird ausschließlich die `docker-compose.yml` genutzt.
 
 **Schritt 1 – GHCR-Registry hinterlegen (nur bei privatem Paket)**
 
@@ -129,10 +129,10 @@ Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI
 
 1. Portainer → **Stacks** → **Add stack**
 2. **Name:** bspw. `highfish-api-db`
-3. **Build method:** **Repository** (Alternative: importiere `docker-compose.prod.yml` als Web-Editor)
+3. **Build method:** **Repository**
 4. - **Repository URL:** `https://github.com/jbkunama1/hAI.highfishAgentenAPIDB.git`
    - **Ref:** `main`
-   - **Compose path:** `docker-compose.prod.yml`
+   - **Compose path:** `docker-compose.yml`
 5. **Environment variables** setzen (mindestens `API_KEY`):
    | Variable | Beispiel |
    |----------|----------|

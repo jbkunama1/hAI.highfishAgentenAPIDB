@@ -44,14 +44,22 @@ services:
 volumes:
   highfish-data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/USB/dietpi_userdata/docker-data/volumes/hai-apidb_highfish-data/_data
   bot-data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/USB/dietpi_userdata/docker-data/volumes/hai-apidb_bot-data/_data
   highfish-backups:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /mnt/backups/highfish-db
+      device: /mnt/USB/dietpi_userdata/docker-data/volumes/hai-apidb_highfish-backups/_data
 
 networks:
   highfishNetwork:
