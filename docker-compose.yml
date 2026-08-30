@@ -18,14 +18,14 @@ services:
       - AUTH_PASSWORD=${AUTH_PASSWORD:-}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     volumes:
-      - highfish-data:/data
+      - haiapidb_highfish-data:/data
     restart: unless-stopped
     labels:
       - "com.example.description=HighFish API DB - API Key Management"
 
 volumes:
-  highfish-data:
-    driver: local
+  haiapidb_highfish-data:
+    external: true
 
 networks:
   highfishNetwork:
