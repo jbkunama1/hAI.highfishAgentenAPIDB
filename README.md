@@ -27,7 +27,8 @@
   - [Export](#export)
   - [Import (Text-Format)](#import-text-format)
   - [Health-Check](#health-check)
-- [Datenstruktur](#datenstruktur)
+- [Telegram-Bot](#telegram-bot)
+  - [Datenstruktur](#datenstruktur)
 - [Umgebungsvariablen](#umgebungsvariablen)
   - [Authentifizierung](#authentifizierung)
 - [Lizenz](#lizenz)
@@ -153,6 +154,12 @@ Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI
 ## 🌐 API-Referenz
 
 Basis-URL: `http://<host>:3000`
+
+> **Authentifizierung:** Alle Endpunkte ausser `/api/health` erfordern einen Auth-Header:
+> - **Bearer-Token:** `Authorization: Bearer <API_KEY>`
+> - **Basic Auth:** `Authorization: Basic base64(Benutzer:Passwort)`
+>
+> Ohne gueltigen Key antwortet der Server mit `401 Unauthorized`.
 
 > **Authentifizierung:** Alle Endpunkte ausser `/api/health` erfordern einen Auth-Header:
 > - **Bearer-Token:** `Authorization: ******
@@ -286,9 +293,37 @@ Content-Type: application/json
 
 ---
 
-### Health-Check
+### Telegram-Bot
 
+Der **HighFish Telegram-Bot** ist ein dedizierter Node.js/Telegraf-Container fuer die Admin-Verwaltung der Datenbank per Telegram-Messenger. Er laeuft separat neben der API und verbindet sich ueber das interne Docker-Netzwerk.
+
+**Setup (docker-compose):**
+
+| Variable | Beispiel | Beschreibung |
+|----------|---------|-------------|
+| `TELEGRAM_BOT_TOKEN` | `123456:ABC-...` | BotFather Token |
+| `ADMIN_TELEGRAM_ID` | `123456789` | Deine Telegram-User-ID |
+| `API_KEY` | `geheimer-schluessel` | Muss mit API-Server-Key uebereinstimmen |
+
+**Funktionen:**
+
+| Button | Beschreibung |
+|--------|-------------|
+| `List` | Gibt alle DB-Eintraege formatiert aus |
+| `Search` | Freitext-Suche in Name + Notizen |
+| `Export DB` | Vollstaendiger JSON-Export aller Eintraege |
+| `Import` | JSON-Array senden zum Importieren |
+
+**Admin-Schutz:** Jede eingehende Nachricht wird gegen `ADMIN_TELEGRAM_ID` geprueft. Unbefugte erhalten eine `Unauthorized`-Antwort.
+
+**Docker:**
+```bash
+docker compose up -d highfish-telegram-bot
 ```
+
+---
+
+### Health-Check
 GET /api/health
 ```
 
@@ -334,7 +369,7 @@ Alle `/api`-Routen ausser `/api/health` sind **geschuetzt**. Setze mindestens ei
 ```bash
 API_KEY=geheimer-schluessel
 # Anfrage:
-curl -H "Authorization: ******" http://localhost:3000/api/entries
+curl -H "Authorization: Bearer geheimer-schluessel" http://localhost:3000/api/entries
 ```
 
 **Option 2 – Basic Auth:**
