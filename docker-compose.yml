@@ -19,6 +19,7 @@ services:
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
     volumes:
       - haiapidb_highfish-data:/data
+          - /home/APIBACKUP:/backup
     restart: unless-stopped
     labels:
       - "com.example.description=HighFish API DB - API Key Management"
