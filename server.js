@@ -211,6 +211,25 @@ function initializeDatabase() {
       }
     });
 
+    // Migration: add is_admin to users and create user_preferences table
+    db.all(`PRAGMA table_info(users)`, (err, userCols) => {
+      if (err) return console.error('Error reading users schema:', err);
+      if (!userCols.find(c => c.name === 'is_admin')) {
+        console.log('Migrating schema: adding is_admin column to users...');
+        db.run(`ALTER TABLE users ADD COLUMN is_admin INTEGER DEFAULT 0`);
+      }
+    });
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS user_preferences (
+        user_id INTEGER PRIMARY KEY,
+        theme TEXT DEFAULT 'light',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `, err => { if (err) console.error('Error creating user_preferences table:', err); });
+
     console.log('Database schema initialized');
   });
 }
@@ -393,6 +412,114 @@ app.post('/api/import', (req, res) => {
       res.status(500).json({ error: 'Import failed' });
     }
   });
+});
+
+// --- Admin Routes (require is_admin) ---
+function requireAdmin(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+  const isAdmin = req.user.role === 'admin' || req.user.is_admin === 1 || req.user.role !== 'user';
+  if (!isAdmin) return res.status(403).json({ error: 'Admin access required' });
+  next();
+}
+
+// POST /api/admin/import - admin only, imports JSON or SQL dump (raw body)
+app.post('/api/admin/import', bodyParser.text({ limit: '50mb' }), (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+  const isAdmin = req.user.role === 'admin' || req.user.is_admin === 1 || req.user.role !== 'user';
+  if (!isAdmin) return res.status(403).json({ error: 'Admin access required' });
+
+  const contentType = (req.headers['content-type'] || '').toLowerCase();
+  const body = req.body;
+
+  if (typeof body === 'string' && body.trim().length > 0) {
+    // SQL dump import
+    if (contentType.includes('sql') || /^\s*(CREATE|INSERT|DROP|BEGIN)/i.test(body)) {
+      try {
+        db.exec(body, err => {
+          if (err) return res.status(500).json({ error: 'SQL import failed: ' + err.message });
+          res.json({ success: true, message: 'SQL dump imported' });
+        });
+        return;
+      } catch (e) {
+        return res.status(500).json({ error: 'SQL import error: ' + e.message });
+      }
+    }
+    // JSON string
+    try {
+      const entries = JSON.parse(body);
+      if (!Array.isArray(entries)) return res.status(400).json({ error: 'JSON must be an array' });
+      const stmt = db.prepare(
+        `INSERT OR IGNORE INTO api_entries (name, url, apiKey, category, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
+      );
+      let count = 0;
+      entries.forEach(e => {
+        if (e && e.name && e.apiKey) {
+          stmt.run(e.name, e.url || null, e.apiKey, e.category || null, e.notes || '', null);
+          count++;
+        }
+      });
+      stmt.finalize(err => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, imported: count });
+      });
+      return;
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid JSON: ' + e.message });
+    }
+  }
+
+  // Fallback: JSON object body
+  const entries = body;
+  if (!Array.isArray(entries)) {
+    return res.status(400).json({ error: 'Request body must be a JSON array or SQL dump text' });
+  }
+  const stmt = db.prepare(
+    `INSERT OR IGNORE INTO api_entries (name, url, apiKey, category, notes, user_id) VALUES (?, ?, ?, ?, ?, ?)`
+  );
+  let count = 0;
+  entries.forEach(e => {
+    if (e && e.name && e.apiKey) {
+      stmt.run(e.name, e.url || null, e.apiKey, e.category || null, e.notes || '', null);
+      count++;
+    }
+  });
+  stmt.finalize(err => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true, imported: count });
+  });
+});
+
+// --- User Theme Persistence (per user) ---
+// GET /api/theme - returns saved theme for current user (or 'light' default)
+app.get('/api/theme', (req, res) => {
+  const userId = req.user && req.user.id ? req.user.id : 0;
+  db.get('SELECT theme FROM user_preferences WHERE user_id = ?', [userId], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ theme: row && row.theme ? row.theme : 'light' });
+  });
+});
+
+// POST /api/theme - persist theme for current user
+app.post('/api/theme', (req, res) => {
+  const { theme } = req.body || {};
+  if (!theme || typeof theme !== 'string') {
+    return res.status(400).json({ error: 'Missing theme' });
+  }
+  const allowed = ['light', 'dark', 'glass', 'saas-market'];
+  if (!allowed.includes(theme)) {
+    return res.status(400).json({ error: 'Invalid theme' });
+  }
+  const userId = req.user && req.user.id ? req.user.id : 0;
+  db.run(
+    `INSERT INTO user_preferences (user_id, theme, updated_at)
+     VALUES (?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(user_id) DO UPDATE SET theme = excluded.theme, updated_at = CURRENT_TIMESTAMP`,
+    [userId, theme],
+    err => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, theme });
+    }
+  );
 });
 
 // GET health
