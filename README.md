@@ -46,8 +46,13 @@
 ## Features
 
 - ✅ CRUD für API-Einträge (Name, URL, API-Key, Notizen)
+- ✅ CRUD für API-Einträge (Name, URL, API-Key, Notizen)
 - ✅ **JSON-Export** aller Einträge
 - ✅ **Text-Import** (semikolongetrennt, Batch)
+- ✅ **Admin Import** (JSON & SQL-Dumps für Bulk-Operationen)
+- ✅ **Automatische tägliche DB-Backups** (3-Tage-Rotation, mounted Volume)
+- ✅ **Theme-Persistenz** (pro User in DB gespeichert)
+- ✅ **Admin-Flag** für User (`is_admin` Spalte)
 - ✅ Rate Limiting (100 Anfragen/min pro IP)
 - ✅ **Authentifizierung** auf allen API-Endpunkten (Bearer-Token oder Basic Auth)
 - ✅ **CI/CD** – automatischer Docker-Build per GitHub Actions (bei Push + manuell)
@@ -113,6 +118,46 @@ Ein [GitHub Actions Workflow](.github/workflows/docker-build.yml) baut das Image
 ### In Portainer
 
 Das GHCR-Image (`ghcr.io/jbkunama1/hai.highfishagentenapidb:latest`) wird vom CI-Workflow gebaut. Für Portainer gibt es eine spezielle Datei **`docker-compose.prod.yml`**, die das fertige Image nutzt (statt lokal zu bauen).
+
+---
+
+## Backup-System
+
+Das System führt **täglich um 02:00 Uhr** einen SQLite-Dump der Datenbank durch.
+
+- **Speicherort im Container:** `/backup`
+- **Host-Mount:** `/home/APIBACKUP` (via `docker-compose.yml`)
+- **Rotation:** Behält die **3 neuesten** Backups (Tages-Slots über `date +%u`)
+- **Dateiname:** `highfish_<Wochentag>.sql` (z. B. `highfish_1.sql` für Montag)
+
+### Setup
+
+1. Host-Verzeichnis anlegen:
+   ```bash
+   mkdir -p /home/APIBACKUP
+   ```
+
+2. In `docker-compose.yml` Volume mounten:
+   ```yaml
+   volumes:
+     - highfish-data:/data
+     - /home/APIBACKUP:/backup
+   ```
+
+3. Container neustarten – der Cron-Job läuft automatisch.
+
+### Manuelles Backup
+```bash
+docker exec highfish-api-db /app/backup.sh
+```
+
+### Backup prüfen
+```bash
+ls -la /home/APIBACKUP/
+# highfish_1.sql  highfish_3.sql  highfish_5.sql  (3 neueste)
+```
+
+---
 
 **Schritt 1 – GHCR-Registry hinterlegen (nur bei privatem Paket)**
 
@@ -286,6 +331,64 @@ Content-Type: application/json
 - Zeilen mit fehlendem `name`, `url` oder `apiKey` werden übersprungen
 - `notes` ist optional; mehrere `;` im Notizfeld werden korrekt zusammengeführt
 - Duplikate werden **nicht** geprüft – bei Bedarf vor dem Import exportieren und bereinigen
+
+---
+
+### Admin Import (JSON & SQL)
+
+**Nur für Admins** (`is_admin = 1` oder `role = "admin"`). Importiert Bulk-Daten aus JSON oder SQL-Dump-Dateien.
+
+```
+POST /api/admin/import
+Content-Type: multipart/form-data
+```
+
+**Form Fields:**
+- `file` – die Import-Datei (.json oder .sql)
+- `format` – `"json"` oder `"sql"`
+
+**JSON-Format Beispiel:**
+```json
+[
+  { "name": "Service A", "url": "https://api.a.com", "apiKey": "key1", "notes": "Notiz" },
+  { "name": "Service B", "url": "https://api.b.com", "apiKey": "key2", "notes": "" }
+]
+```
+
+**SQL-Format:** Beliebige SQLite-kompatible SQL-Statements (CREATE, INSERT, etc.).
+
+**Response:**
+```json
+{ "success": true, "message": "Import completed", "format": "json" }
+```
+
+**Wichtig:** SQL-Import führt beliebigen SQL aus – nur vertrauenswürdige Dateien importieren!
+
+---
+
+### Theme API
+
+Speichert und lädt das Theme pro User in der Datenbank (browser-übergreifend).
+
+#### Theme abrufen
+```
+GET /api/theme
+```
+**Response:**
+```json
+{ "theme": "dark" }
+```
+
+#### Theme setzen
+```
+POST /api/theme
+Content-Type: application/json
+```
+**Body:**
+```json
+{ "theme": "dark" }
+```
+Gültige Werte: `"light"`, `"dark"`, `"auto"`
 
 ---
 
