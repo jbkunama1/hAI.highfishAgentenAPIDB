@@ -108,7 +108,7 @@ async function handleMessage(msg) {
   const chatId = String(msg.chat.id);
 
   if (!isAllowed(chatId)) {
-    await bot.sendMessage(chatId, '⛔ <b>Access denied.</b>\nContact the admin to whitelist your Chat ID.', { parse_mode: 'HTML' });
+    // Silent ignore for unauthorized chats (strict allowlist)
     return;
   }
 
@@ -155,7 +155,7 @@ async function handleCallbackQuery(cb) {
   const data = cb.data || '';
 
   if (!isAllowed(chatId)) {
-    await bot.answerCallbackQuery(cb.id, { text: '⛔ Access denied.', show_alert: true });
+    // Silent ignore for unauthorized chats (strict allowlist)
     return;
   }
 
