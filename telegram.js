@@ -42,6 +42,9 @@ const WEBHOOK_PATH = '/telegram/' + (process.env.TELEGRAM_WEBHOOK_PATH || TOKEN)
 let bot = null;
 let db = null;
 
+// Per-chat state: Map<chatId, { state: 'awaiting_add_entry', messageId?: number }>
+const chatState = new Map();
+
 function mask(str) {
   if (!str || str.length < 8) return '****';
   return str.slice(0, 4) + '…' + str.slice(-4);
@@ -113,6 +116,23 @@ async function handleMessage(msg) {
   }
 
   const text = (msg.text || '').trim();
+
+  // State machine: if this chat is waiting for input, the next non-command message is the data.
+  const state = chatState.get(String(chatId));
+  if (state && state.state === 'awaiting_add_entry') {
+    if (text.toLowerCase() === '/cancel') {
+      chatState.delete(String(chatId));
+      await bot.sendMessage(chatId, '🚫 Add cancelled.');
+      return;
+    }
+    if (text.startsWith('/')) {
+      // A new command while waiting — fall through to normal command handling.
+    } else {
+      await processAddEntry(chatId, text);
+      return;
+    }
+  }
+
   if (text.startsWith('/')) {
     const cmd = text.split(' ')[0].toLowerCase();
     switch (cmd) {
@@ -129,6 +149,7 @@ async function handleMessage(msg) {
           '/start – Show menu\n' +
           '/help  – This message\n' +
           '/list  – List all entries\n' +
+          '/add   – Add a new entry\n' +
           '/health – Server health check\n' +
           '/export – Export all entries as JSON\n\n' +
           '<b>Note:</b> API keys shown are always masked.',
@@ -138,11 +159,21 @@ async function handleMessage(msg) {
       case '/list':
         await cmdList(chatId);
         break;
+      case '/add':
+        await cmdAddStart(chatId);
+        break;
       case '/health':
         await cmdHealth(chatId);
         break;
       case '/export':
         await cmdExport(chatId);
+        break;
+      case '/cancel':
+        if (chatState.delete(String(chatId))) {
+          await bot.sendMessage(chatId, '🚫 Cancelled.');
+        } else {
+          await bot.sendMessage(chatId, 'Nothing to cancel.');
+        }
         break;
       default:
         await bot.sendMessage(chatId, '❓ Unknown command. Send /help for options.');
@@ -168,8 +199,8 @@ async function handleCallbackQuery(cb) {
         await cmdList(chatId, page);
       } else {
         switch (cmd) {
-          case 'list':   await cmdList(chatId);     break;
-          case 'add':    await cmdAddStart(chatId, cb.from.id); break;
+          case 'list':   chatState.delete(String(chatId)); await cmdList(chatId); break;
+          case 'add':    await cmdAddStart(chatId); break;
           case 'health': await cmdHealth(chatId);   break;
           case 'export': await cmdExport(chatId);   break;
           case 'help':   await cmdHelp(chatId);     break;
@@ -277,15 +308,44 @@ async function cmdInfo(chatId, id) {
 }
 
 async function cmdAddStart(chatId, msgId) {
+  chatState.set(String(chatId), { state: 'awaiting_add_entry' });
   await bot.sendMessage(chatId,
     '📝 <b>Add new entry</b>\n\n' +
     'Send in this format (one message):\n' +
     '<code>name | url | apikey | category | notes</code>\n\n' +
     'Example:\n' +
     '<code>OpenAI | https://api.openai.com | sk-xxx | AI | GPT-4o</code>\n\n' +
-    'Fields: <b>name</b> and <b>apikey</b> are required.',
+    'Fields: <b>name</b> and <b>apikey</b> are required. Send /cancel to abort.',
     { parse_mode: 'HTML' }
   );
+}
+
+async function processAddEntry(chatId, text) {
+  const parts = text.split('|').map(s => s.trim());
+  if (parts.length < 3) {
+    await bot.sendMessage(chatId,
+      '❌ Need at least: <code>name | url | apikey</code>. Try again or /cancel.',
+      { parse_mode: 'HTML' }
+    );
+    return;
+  }
+  const [name, url, apiKey, category = '', notes = ''] = parts;
+  if (!name || !apiKey) {
+    await bot.sendMessage(chatId, '❌ <b>name</b> and <b>apikey</b> are required.', { parse_mode: 'HTML' });
+    return;
+  }
+
+  await new Promise((res, rej) =>
+    db.run(
+      'INSERT INTO api_entries (name, url, apiKey, category, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, datetime("now"), datetime("now"))',
+      [name, url || '', apiKey, category, notes],
+      err => err ? rej(err) : res()
+    )
+  );
+
+  chatState.delete(String(chatId));
+  await bot.sendMessage(chatId, `✅ Entry <b>${escHtml(name)}</b> added.`, { parse_mode: 'HTML' });
+  await cmdList(chatId);
 }
 
 async function cmdDeleteConfirm(chatId, id, msgId) {
