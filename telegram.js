@@ -324,7 +324,7 @@ async function cmdDeleteExecute(chatId, id) {
 }
 
 async function cmdHealth(chatId) {
-  await bot.sendMessage(chatId, '✅ <b>Health check:</b> `ok`\nServer is running.', { parse_mode: 'HTML' });
+  await bot.sendMessage(chatId, '✅ <b>Health check:</b> <code>ok</code>\nServer is running.', { parse_mode: 'HTML' });
 }
 
 async function cmdExport(chatId) {
