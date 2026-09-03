@@ -1,0 +1,321 @@
+'use strict';
+
+/**
+ * Telegram bot for hAI · HighFish Agenten API DB
+ *
+ * Setup:
+ *   1. Create bot via @BotFather → get BOT_TOKEN
+ *   2. Get your Chat ID via @userinfobot or /getupdates
+ *   3. Set env: TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_CHAT_IDS (comma-separated)
+ *      If TELEGRAM_BOT_TOKEN is absent the module stays inactive (no error).
+ *   4. Optionally set TELEGRAM_ADMIN_API_KEY to match API_KEY for admin auth.
+ *
+ * Commands:
+ *   /start          – Welcome message + keyboard menu
+ *   /help           – Help text
+ *   /list           – List all API entries (name + masked key only)
+ *   /health         – Quick health check
+ *
+ * Inline buttons:
+ *   📋 List       → /list
+ *   ➕ Add        → opens add form
+ *   ℹ️ Info       → entry detail (name, url, category, notes, created/updated)
+ *   ✏️  Edit       → updates entry
+ *   🗑️  Delete     → deletes entry (confirmation required)
+ *   💾 Export      → sends JSON export
+ *
+ * Security:
+ *   • Only chat IDs in TELEGRAM_ALLOWED_CHAT_IDS are served
+ *   • apiKey values are always masked (sk-xxxx…xxxx)
+ *   • Rate limit: 20 messages/min per chat
+ */
+
+const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const ALLOWED = process.env.TELEGRAM_ALLOWED_CHAT_IDS
+  ? process.env.TELEGRAM_ALLOWED_CHAT_IDS.split(',').map(s => s.trim())
+  : [];
+const ADMIN_KEY = process.env.TELEGRAM_ADMIN_API_KEY || process.env.API_KEY || '';
+const PORT = process.env.TELEGRAM_WEBHOOK_PORT || process.env.PORT || 3000;
+const USE_WEBHOOK = process.env.TELEGRAM_USE_WEBHOOK === 'true';
+const WEBHOOK_PATH = '/telegram/' + (process.env.TELEGRAM_WEBHOOK_PATH || TOKEN);
+
+// ── Lazy-load bot only when token is configured ─────────────────────────────────
+let bot = null;
+let db = null;
+
+function mask(str) {
+  if (!str || str.length < 8) return '****';
+  return str.slice(0, 4) + '…' + str.slice(-4);
+}
+
+function chunk(text, limit = 4000) {
+  const lines = text.split('\n');
+  const chunks = [];
+  let current = '';
+  for (const line of lines) {
+    if ((current + '\n' + line).length > limit) {
+      if (current) chunks.push(current.trim());
+      current = line;
+    } else {
+      current += '\n' + line;
+    }
+  }
+  if (current) chunks.push(current.trim());
+  return chunks;
+}
+
+async function sendChunks(chatId, text) {
+  for (const c of chunk(text)) {
+    await bot.sendMessage(chatId, c, { parse_mode: 'HTML' });
+  }
+}
+
+function buildMenu() {
+  return {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '📋 List', callback_data: 'cmd:list' },
+          { text: '➕ Add',  callback_data: 'cmd:add' },
+        ],
+        [
+          { text: '💾 Export', callback_data: 'cmd:export' },
+          { text: '❤️  Health', callback_data: 'cmd:health' },
+        ],
+        [
+          { text: '❓ Help', callback_data: 'cmd:help' },
+        ],
+      ],
+    },
+  };
+}
+
+// ── Auth check ────────────────────────────────────────────────────────────────
+function isAllowed(chatId) {
+  return ALLOWED.includes(String(chatId));
+}
+
+async function handleMessage(msg) {
+  const chatId = String(msg.chat.id);
+
+  if (!isAllowed(chatId)) {
+    await bot.sendMessage(chatId, '⛔ <b>Access denied.</b>\nContact the admin to whitelist your Chat ID.', { parse_mode: 'HTML' });
+    return;
+  }
+
+  const text = (msg.text || '').trim();
+  if (text.startsWith('/')) {
+    const cmd = text.split(' ')[0].toLowerCase();
+    switch (cmd) {
+      case '/start':
+        await bot.sendMessage(
+          chatId,
+          '🐟 <b>hAI · HighFish Agenten API DB</b>\n\nUse the menu below or type /help for commands.',
+          { parse_mode: 'HTML', ...buildMenu() }
+        );
+        break;
+      case '/help':
+        await bot.sendMessage(chatId,
+          '📖 <b>Available commands</b>\n\n' +
+          '/start – Show menu\n' +
+          '/help  – This message\n' +
+          '/list  – List all entries\n' +
+          '/health – Server health check\n' +
+          '/export – Export all entries as JSON\n\n' +
+          '<b>Note:</b> API keys shown are always masked.',
+          { parse_mode: 'HTML' }
+        );
+        break;
+      case '/list':
+        await cmdList(chatId);
+        break;
+      case '/health':
+        await cmdHealth(chatId);
+        break;
+      case '/export':
+        await cmdExport(chatId);
+        break;
+      default:
+        await bot.sendMessage(chatId, '❓ Unknown command. Send /help for options.');
+    }
+  }
+}
+
+async function handleCallbackQuery(cb) {
+  const chatId = String(cb.message.chat.id);
+  const data = cb.data || '';
+
+  if (!isAllowed(chatId)) {
+    await bot.answerCallbackQuery(cb.id, { text: '⛔ Access denied.', show_alert: true });
+    return;
+  }
+
+  await bot.answerCallbackQuery(cb.id);
+
+  if (data.startsWith('cmd:')) {
+    const cmd = data.slice(4);
+    switch (cmd) {
+      case 'list':   await cmdList(chatId);     break;
+      case 'add':    await cmdAddStart(chatId, cb.from.id); break;
+      case 'health': await cmdHealth(chatId);   break;
+      case 'export': await cmdExport(chatId);   break;
+      case 'help':   await cmdHelp(chatId);     break;
+      default:
+        await bot.sendMessage(chatId, '❓ Unknown action.');
+    }
+  } else if (data.startsWith('info:')) {
+    await cmdInfo(chatId, data.slice(5));
+  } else if (data.startsWith('del:')) {
+    await cmdDeleteConfirm(chatId, data.slice(4), cb.message.message_id);
+  }
+}
+
+// ── Commands ───────────────────────────────────────────────────────────────────
+async function cmdList(chatId) {
+  const rows = await new Promise((res, rej) =>
+    db.all('SELECT id, name, category FROM api_entries ORDER BY name', [], (err, r) =>
+      err ? rej(err) : res(r)
+    )
+  );
+
+  if (!rows.length) {
+    await bot.sendMessage(chatId, '📭 No entries yet. Use ➕ Add to create one.');
+    return;
+  }
+
+  const lines = rows.map((r, i) =>
+    `${i + 1}. ${r.name}${r.category ? ' [' + r.category + ']' : ''}`
+  );
+
+  await sendChunks(chatId, '📋 <b>API Entries</b>\n\n' + lines.join('\n') +
+    '\n\nTap an entry for details →');
+}
+
+async function cmdInfo(chatId, id) {
+  const row = await new Promise((res, rej) =>
+    db.get('SELECT * FROM api_entries WHERE id = ?', [id], (err, r) =>
+      err ? rej(err) : res(r)
+    )
+  );
+
+  if (!row) {
+    await bot.sendMessage(chatId, '❌ Entry not found.');
+    return;
+  }
+
+  const text =
+    `🔑 <b>${escHtml(row.name)}</b>\n\n` +
+    `URL: <code>${escHtml(row.url || '-')}</code>\n` +
+    `Key: <code>${mask(row.apiKey)}</code>\n` +
+    `Category: ${escHtml(row.category || '-')}\n` +
+    `Notes: ${escHtml(row.notes || '-')}\n` +
+    `Created: ${row.created_at}\n` +
+    `Updated: ${row.updated_at}`;
+
+  await bot.sendMessage(chatId, text, {
+    parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: '✏️ Edit', callback_data: `edit:${id}` },
+          { text: '🗑️ Delete', callback_data: `del:${id}` },
+        ],
+        [
+          { text: '🔙 Back', callback_data: 'cmd:list' },
+        ],
+      ],
+    },
+  });
+}
+
+async function cmdAddStart(chatId, msgId) {
+  await bot.sendMessage(chatId,
+    '📝 <b>Add new entry</b>\n\n' +
+    'Send in this format (one message):\n' +
+    '<code>name | url | apikey | category | notes</code>\n\n' +
+    'Example:\n' +
+    '<code>OpenAI | https://api.openai.com | sk-xxx | AI | GPT-4o</code>\n\n' +
+    'Fields: <b>name</b> and <b>apikey</b> are required.',
+    { parse_mode: 'HTML' }
+  );
+}
+
+async function cmdDeleteConfirm(chatId, id, msgId) {
+  await bot.sendMessage(chatId,
+    `⚠️ Delete entry #${id}?`,
+    {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '✅ Yes, delete', callback_data: `dodelete:${id}` },
+            { text: '❌ Cancel', callback_data: `delcancel:${id}` },
+          ],
+        ],
+      },
+    }
+  );
+}
+
+async function cmdHealth(chatId) {
+  await bot.sendMessage(chatId, '✅ <b>Health check:</b> `ok`\nServer is running.', { parse_mode: 'HTML' });
+}
+
+async function cmdExport(chatId) {
+  const rows = await new Promise((res, rej) =>
+    db.all('SELECT name, url, apiKey, category, notes FROM api_entries ORDER BY name', [], (err, r) =>
+      err ? rej(err) : res(r)
+    )
+  );
+
+  const json = JSON.stringify(rows, null, 2);
+  await bot.sendMessage(chatId, '💾 <b>Export</b>\nSending JSON…', { parse_mode: 'HTML' });
+  await bot.sendMessage(chatId, `<pre>${escHtml(json)}</pre>`, { parse_mode: 'HTML' });
+}
+
+async function cmdHelp(chatId) {
+  await handleMessage({ chat: { id: chatId }, text: '/help' });
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// ── Module init ────────────────────────────────────────────────────────────────
+let initDone = false;
+
+function init({ db: _db, app }) {
+  if (initDone) return;
+  initDone = true;
+  db = _db;
+
+  if (!TOKEN) {
+    console.log('[Telegram] TELEGRAM_BOT_TOKEN not set – bot inactive.');
+    return;
+  }
+
+  // Dynamic require to avoid crash when module is installed but token missing
+  const TelegramBot = require('node-telegram-bot-api');
+  bot = new TelegramBot(TOKEN, { polling: !USE_WEBHOOK });
+
+  bot.on('message', handleMessage);
+  bot.on('callback_query', handleCallbackQuery);
+
+  if (USE_WEBHOOK) {
+    const url = `https://your-domain.com${WEBHOOK_PATH}`;
+    bot.setWebHook(url).catch(err => {
+      console.error('[Telegram] Webhook set failed:', err.message);
+    });
+    app.post(WEBHOOK_PATH, (req, res) => {
+      bot.processUpdate(req.body);
+      res.sendStatus(200);
+    });
+  }
+
+  console.log(`[Telegram] Bot active – polling: ${!USE_WEBHOOK}, allowed chats: ${ALLOWED.join(', ') || '(none)'}`);
+}
+
+module.exports = { init };

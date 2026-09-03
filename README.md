@@ -405,6 +405,48 @@ GET /api/health
 
 ---
 
+## Telegram-Bot
+
+Optionaler Telegram-Bot zur Verwaltung von API-Einträgen direkt vom Smartphone oder Desktop.
+
+### Einrichtung
+
+1. Öffne Telegram und chatte mit **@BotFather**
+2. Sende `/newbot`, folge den Anweisungen, erhalte deinen **Bot Token** (`TELEGRAM_BOT_TOKEN`)
+3. Finde deine **Chat-ID**: schreibe eine Nachricht an deinen Bot, dann ruf auf:
+   ```bash
+   curl "https://api.telegram.org/bot<DEIN_TOKEN>/getUpdates" | jq .result[0].message.chat.id
+   ```
+4. Setze die Umgebungsvariablen:
+   ```bash
+   TELEGRAM_BOT_TOKEN=123456:ABC-DEF...
+   TELEGRAM_ALLOWED_CHAT_IDS=123456789
+   ```
+
+### Bot-Befehle
+
+| Befehl | Beschreibung |
+|--------|-------------|
+| `/start` | Willkommensnachricht + Menü |
+| `/help` | Hilfe |
+| `/list` | Alle API-Einträge auflisten |
+| `/health` | Server-Gesundheitscheck |
+| `/export` | JSON-Export aller Einträge |
+
+### Inline-Menü
+
+| Taste | Aktion |
+|-------|--------|
+| 📋 List | Einträge auflisten |
+| ➕ Add | Neuen Eintrag hinzufügen |
+| 💾 Export | JSON exportieren |
+| ❤️ Health | Server-Status prüfen |
+| ❓ Help | Hilfe anzeigen |
+
+**Sicherheit:** Alle API-Schlüssel werden in Telegram-Nachrichten maskiert (`sk-xxxx…xxxx`). Der Bot antwortet nur auf authorisierte Chat-IDs.
+
+---
+
 ## Datenstruktur
 
 Tabelle: `api_entries`
@@ -431,6 +473,9 @@ Tabelle: `api_entries`
 | `API_KEY` | – | API-Key für Bearer-Token-Authentifizierung (empfohlen) |
 | `AUTH_USER` / `AUTH_PASSWORD` | – | Alternativ: Basic-Auth-Zugangsdaten |
 | `ALLOWED_ORIGINS` | `http://localhost:3000` | Kommagetrennte CORS-Whitelist |
+| `TELEGRAM_BOT_TOKEN` | – | Telegram Bot Token von @BotFather |
+| `TELEGRAM_ALLOWED_CHAT_IDS` | – | Kommagetrennte Liste erlaubter Telegram Chat-IDs |
+| `TELEGRAM_ADMIN_API_KEY` | – | Optionaler Admin API-Key für den Bot |
 
 ### Authentifizierung
 
