@@ -192,7 +192,7 @@ async function cmdList(chatId) {
   }
 
   const lines = rows.map((r, i) =>
-    `${i + 1}. ${r.name}${r.category ? ' [' + r.category + ']' : ''}`
+    `${i + 1}. ${escHtml(r.name)}${r.category ? ' [' + escHtml(r.category) + ']' : ''}`
   );
 
   await sendChunks(chatId, '📋 <b>API Entries</b>\n\n' + lines.join('\n') +
