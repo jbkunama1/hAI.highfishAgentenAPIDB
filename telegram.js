@@ -27,7 +27,6 @@
  * Security:
  *   • Only chat IDs in TELEGRAM_ALLOWED_CHAT_IDS are served
  *   • apiKey values are always masked (sk-xxxx…xxxx)
- *   • Rate limit: 20 messages/min per chat
  */
 
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -53,6 +52,16 @@ function chunk(text, limit = 4000) {
   const chunks = [];
   let current = '';
   for (const line of lines) {
+    if (line.length > limit) {
+      if (current) {
+        chunks.push(current.trim());
+        current = '';
+      }
+      for (let i = 0; i < line.length; i += limit) {
+        chunks.push(line.slice(i, i + limit));
+      }
+      continue;
+    }
     if ((current + '\n' + line).length > limit) {
       if (current) chunks.push(current.trim());
       current = line;
@@ -154,16 +163,21 @@ async function handleCallbackQuery(cb) {
 
   if (data.startsWith('cmd:')) {
     const cmd = data.slice(4);
-    switch (cmd) {
-      case 'list':   await cmdList(chatId);     break;
-      case 'add':    await cmdAddStart(chatId, cb.from.id); break;
-      case 'health': await cmdHealth(chatId);   break;
-      case 'export': await cmdExport(chatId);   break;
-      case 'help':   await cmdHelp(chatId);     break;
-      default:
-        await bot.sendMessage(chatId, '❓ Unknown action.');
-    }
-  } else if (data.startsWith('info:')) {
+      if (cmd.startsWith('list:')) {
+        const page = parseInt(cmd.slice(5), 10) || 0;
+        await cmdList(chatId, page);
+      } else {
+        switch (cmd) {
+          case 'list':   await cmdList(chatId);     break;
+          case 'add':    await cmdAddStart(chatId, cb.from.id); break;
+          case 'health': await cmdHealth(chatId);   break;
+          case 'export': await cmdExport(chatId);   break;
+          case 'help':   await cmdHelp(chatId);     break;
+          default:
+            await bot.sendMessage(chatId, '❓ Unknown action.');
+        }
+      }
+    } else if (data.startsWith('info:')) {
     await cmdInfo(chatId, data.slice(5));
   } else if (data.startsWith('del:')) {
     await cmdDeleteConfirm(chatId, data.slice(4), cb.message.message_id);
@@ -179,24 +193,50 @@ async function handleCallbackQuery(cb) {
 }
 
 // ── Commands ───────────────────────────────────────────────────────────────────
-async function cmdList(chatId) {
+async function cmdList(chatId, page = 0) {
+  const pageSize = 5; // Limiting to 5 entries per page for now
+
+  const totalRows = await new Promise((res, rej) =>
+    db.get('SELECT COUNT(*) AS count FROM api_entries', [], (err, r) =>
+      err ? rej(err) : res(r.count)
+    )
+  );
+
+  const offset = page * pageSize;
   const rows = await new Promise((res, rej) =>
-    db.all('SELECT id, name, category FROM api_entries ORDER BY name', [], (err, r) =>
+    db.all('SELECT id, name, category FROM api_entries ORDER BY name LIMIT ? OFFSET ?', [pageSize, offset], (err, r) =>
       err ? rej(err) : res(r)
     )
   );
 
-  if (!rows.length) {
+  if (!totalRows) {
     await bot.sendMessage(chatId, '📭 No entries yet. Use ➕ Add to create one.');
     return;
   }
 
   const lines = rows.map((r, i) =>
-    `${i + 1}. ${escHtml(r.name)}${r.category ? ' [' + escHtml(r.category) + ']' : ''}`
+    `${offset + i + 1}. ${escHtml(r.name)}${r.category ? ' [' + escHtml(r.category) + ']' : ''}`
   );
 
-  await sendChunks(chatId, '📋 <b>API Entries</b>\n\n' + lines.join('\n') +
-    '\n\nTap an entry for details →');
+  const keyboard = rows.map(r => [{ text: `ℹ️ ${escHtml(r.name)}`, callback_data: `info:${r.id}` }]);
+
+  const navButtons = [];
+  if (page > 0) {
+    navButtons.push({ text: '◀️ Prev', callback_data: `cmd:list:${page - 1}` });
+  }
+  if ((page + 1) * pageSize < totalRows) {
+    navButtons.push({ text: '▶️ Next', callback_data: `cmd:list:${page + 1}` });
+  }
+  if (navButtons.length) {
+    keyboard.push(navButtons);
+  }
+  keyboard.push([{ text: '➕ Add', callback_data: 'cmd:add' }]);
+
+  await sendChunks(chatId, `📋 <b>API Entries (Page ${page + 1}/${Math.ceil(totalRows / pageSize)})</b>\n\n` + lines.join('\n'), {
+    reply_markup: {
+      inline_keyboard: keyboard,
+    },
+  });
 }
 
 async function cmdInfo(chatId, id) {
@@ -214,7 +254,7 @@ async function cmdInfo(chatId, id) {
   const text =
     `🔑 <b>${escHtml(row.name)}</b>\n\n` +
     `URL: <code>${escHtml(row.url || '-')}</code>\n` +
-    `Key: <code>${mask(row.apiKey)}</code>\n` +
+    `Key: <code>${escHtml(mask(row.apiKey))}</code>\n` +
     `Category: ${escHtml(row.category || '-')}\n` +
     `Notes: ${escHtml(row.notes || '-')}\n` +
     `Created: ${row.created_at}\n` +
@@ -344,4 +384,4 @@ function init({ db: _db, app }) {
   console.log(`[Telegram] Bot active – polling: ${!USE_WEBHOOK}, allowed chats: ${ALLOWED.join(', ') || '(none)'}`);
 }
 
-module.exports = { init };
+module.exports = { init, chunk };

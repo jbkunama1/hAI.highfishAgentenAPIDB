@@ -443,7 +443,7 @@ Optionaler Telegram-Bot zur Verwaltung von API-Einträgen direkt vom Smartphone 
 | ❤️ Health | Server-Status prüfen |
 | ❓ Help | Hilfe anzeigen |
 
-**Sicherheit:** Alle API-Schlüssel werden in Telegram-Nachrichten maskiert (`sk-xxxx…xxxx`). Der Bot antwortet nur auf authorisierte Chat-IDs.
+**Sicherheit:** Alle API-Schlüssel werden in Telegram-Nachrichten maskiert (`sk-xxxx…xxxx`). Der Bot antwortet nur auf autorisierte Chat-IDs.
 
 ---
 
