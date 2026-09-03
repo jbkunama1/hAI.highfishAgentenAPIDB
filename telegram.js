@@ -167,6 +167,14 @@ async function handleCallbackQuery(cb) {
     await cmdInfo(chatId, data.slice(5));
   } else if (data.startsWith('del:')) {
     await cmdDeleteConfirm(chatId, data.slice(4), cb.message.message_id);
+  } else if (data.startsWith('dodelete:')) {
+    await cmdDeleteExecute(chatId, data.slice(9));
+  } else if (data.startsWith('delcancel:')) {
+    await bot.sendMessage(chatId, 'Operation cancelled.');
+    await cmdList(chatId);
+  } else if (data.startsWith('edit:')) {
+    await bot.sendMessage(chatId, 'Edit feature coming soon.');
+    await cmdInfo(chatId, data.slice(5));
   }
 }
 
@@ -255,6 +263,24 @@ async function cmdDeleteConfirm(chatId, id, msgId) {
       },
     }
   );
+}
+
+async function cmdDeleteExecute(chatId, id) {
+  const result = await new Promise((res, rej) =>
+    db.run('DELETE FROM api_entries WHERE id = ?', [id], function onDelete(err) {
+      if (err) return rej(err);
+      res(this.changes || 0);
+    })
+  );
+
+  if (!result) {
+    await bot.sendMessage(chatId, '❌ Entry not found.');
+    await cmdList(chatId);
+    return;
+  }
+
+  await bot.sendMessage(chatId, `✅ Entry #${id} deleted.`);
+  await cmdList(chatId);
 }
 
 async function cmdHealth(chatId) {
