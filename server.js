@@ -234,7 +234,11 @@ function initializeDatabase() {
   });
 }
 
-// --- API Routes ---
+    // Initialize Telegram bot
+    const telegramInit = require('./telegram');
+    telegramInit.init({ db, app });
+
+    // --- API Routes ---
 
 // GET all entries (with optional paging: ?page=1&limit=50)
 app.get('/api/entries', (req, res) => {
