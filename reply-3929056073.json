@@ -1,0 +1,1 @@
+﻿{"body":"I have updated cmdList to include an inline keyboard with \u0027info:\u0027 callback data for each entry, allowing users to tap entries for details. Pagination is also included to handle button limits. Resolving this thread."}
