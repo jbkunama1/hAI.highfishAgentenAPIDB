@@ -45,6 +45,25 @@ let db = null;
 // Per-chat state: Map<chatId, { state: 'awaiting_add_entry', messageId?: number }>
 const chatState = new Map();
 
+// Per-chat rate limit: 20 messages/min (sliding window)
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60 * 1000;
+// Map<chatId, number[]> timestamps of recent messages (oldest first)
+const rateBuckets = new Map();
+
+function rateLimit(chatId) {
+  const key = String(chatId);
+  const now = Date.now();
+  const cutoff = now - RATE_WINDOW_MS;
+  const arr = rateBuckets.get(key) || [];
+  // Drop expired entries
+  while (arr.length && arr[0] < cutoff) arr.shift();
+  if (arr.length >= RATE_LIMIT) return false;
+  arr.push(now);
+  rateBuckets.set(key, arr);
+  return true;
+}
+
 function mask(str) {
   if (!str || str.length < 8) return '****';
   return str.slice(0, 4) + '…' + str.slice(-4);
@@ -107,13 +126,24 @@ function isAllowed(chatId) {
   return ALLOWED.includes(String(chatId));
 }
 
+function checkRateLimit(chatId, botInstance) {
+  if (!rateLimit(chatId)) {
+    botInstance.sendMessage(chatId, '⚠️ Rate limit exceeded (20 messages/min). Please slow down.').catch(() => {});
+    return false;
+  }
+  return true;
+}
+
 async function handleMessage(msg) {
   const chatId = String(msg.chat.id);
 
   if (!isAllowed(chatId)) {
+    console.warn('[telegram] Ignored unauthorized chat:', chatId);
     // Silent ignore for unauthorized chats (strict allowlist)
     return;
   }
+
+  if (!checkRateLimit(chatId, bot)) return;
 
   const text = (msg.text || '').trim();
 
@@ -186,9 +216,12 @@ async function handleCallbackQuery(cb) {
   const data = cb.data || '';
 
   if (!isAllowed(chatId)) {
+    console.warn('[telegram] Ignored unauthorized chat:', chatId);
     // Silent ignore for unauthorized chats (strict allowlist)
     return;
   }
+
+  if (!checkRateLimit(chatId, bot)) return;
 
   await bot.answerCallbackQuery(cb.id);
 
