@@ -161,6 +161,18 @@ async function handleMessage(msg) {
       await processAddEntry(chatId, text);
       return;
     }
+  } else if (state && state.state === 'awaiting_edit_entry') {
+    if (text.toLowerCase() === '/cancel') {
+      chatState.delete(String(chatId));
+      await bot.sendMessage(chatId, '🚫 Edit cancelled.');
+      return;
+    }
+    if (text.startsWith('/')) {
+      // A new command while waiting — fall through to normal command handling.
+    } else {
+      await processEditEntry(chatId, text);
+      return;
+    }
   }
 
   if (text.startsWith('/')) {
@@ -192,7 +204,10 @@ async function handleMessage(msg) {
       case '/add':
         await cmdAddStart(chatId);
         break;
-      case '/health':
+            case '/edit':
+              await cmdEditStart(chatId);
+              break;
+            case '/health':
         await cmdHealth(chatId);
         break;
       case '/export':
@@ -237,6 +252,7 @@ async function handleCallbackQuery(cb) {
           case 'health': await cmdHealth(chatId);   break;
           case 'export': await cmdExport(chatId);   break;
           case 'help':   await cmdHelp(chatId);     break;
+          case 'edit':   await cmdEditStart(chatId, cb.message.message_id, cb.message.text); break;
           default:
             await bot.sendMessage(chatId, '❓ Unknown action.');
         }
@@ -251,8 +267,14 @@ async function handleCallbackQuery(cb) {
     await bot.sendMessage(chatId, 'Operation cancelled.');
     await cmdList(chatId);
   } else if (data.startsWith('edit:')) {
-    await bot.sendMessage(chatId, 'Edit feature coming soon.');
-    await cmdInfo(chatId, data.slice(5));
+    chatState.set(String(chatId), { state: 'awaiting_edit_entry', entryId: data.slice(5) });
+    await bot.sendMessage(chatId,
+      '✏️ <b>Enter new values for entry #' + data.slice(5) + '</b>\n\n' +
+      'Send in this format (one message):\n' +
+      '<code>name | url | apikey | category | notes</code>\n\n' +
+      'Leave fields empty to keep current values. Send /cancel to abort.',
+      { parse_mode: 'HTML' }
+    );
   }
 }
 
@@ -353,6 +375,19 @@ async function cmdAddStart(chatId, msgId) {
   );
 }
 
+async function cmdEditStart(chatId) {
+  chatState.set(String(chatId), { state: 'awaiting_edit_entry' });
+  await bot.sendMessage(chatId,
+    '✏️ <b>Edit entry</b>\n\n' +
+    'Send in this format (one message):\n' +
+    '<code>id | name | url | apikey | category | notes</code>\n\n' +
+    'Example:\n' +
+    '<code>1 | OpenAI | https://api.openai.com | sk-xxx | AI | GPT-4o</code>\n\n' +
+    'All fields are optional except <b>id</b>. Send /cancel to abort.',
+    { parse_mode: 'HTML' }
+  );
+}
+
 async function processAddEntry(chatId, text) {
   const parts = text.split('|').map(s => s.trim());
   if (parts.length < 3) {
@@ -378,6 +413,56 @@ async function processAddEntry(chatId, text) {
 
   chatState.delete(String(chatId));
   await bot.sendMessage(chatId, `✅ Entry <b>${escHtml(name)}</b> added.`, { parse_mode: 'HTML' });
+  await cmdList(chatId);
+}
+
+async function processEditEntry(chatId, text) {
+  const parts = text.split('|').map(s => s.trim());
+  if (parts.length < 1) {
+    await bot.sendMessage(chatId,
+      '❌ Need at least: <code>id</code>. Try again or /cancel.',
+      { parse_mode: 'HTML' }
+    );
+    return;
+  }
+  const [id, name, url, apiKey, category, notes] = parts;
+  if (!id) {
+    await bot.sendMessage(chatId, '❌ <b>id</b> is required.', { parse_mode: 'HTML' });
+    return;
+  }
+
+  // Build dynamic update query
+  const updates = [];
+  const params = [];
+  if (name) { updates.push('name = ?'); params.push(name); }
+  if (url !== undefined) { updates.push('url = ?'); params.push(url); }
+  if (apiKey) { updates.push('apiKey = ?'); params.push(apiKey); }
+  if (category !== undefined) { updates.push('category = ?'); params.push(category); }
+  if (notes !== undefined) { updates.push('notes = ?'); params.push(notes); }
+  updates.push('updated_at = datetime("now")');
+  params.push(id);
+
+  if (updates.length === 1) {
+    await bot.sendMessage(chatId, '❌ No fields to update.', { parse_mode: 'HTML' });
+    return;
+  }
+
+  const query = `UPDATE api_entries SET ${updates.join(', ')} WHERE id = ?`;
+  const result = await new Promise((res, rej) =>
+    db.run(query, params, function onUpdate(err) {
+      if (err) return rej(err);
+      res(this.changes || 0);
+    })
+  );
+
+  if (!result) {
+    await bot.sendMessage(chatId, '❌ Entry not found.');
+    await cmdList(chatId);
+    return;
+  }
+
+  chatState.delete(String(chatId));
+  await bot.sendMessage(chatId, `✅ Entry #${id} updated.`, { parse_mode: 'HTML' });
   await cmdList(chatId);
 }
 
