@@ -14,11 +14,13 @@
  *   /start          – Welcome message + keyboard menu
  *   /help           – Help text
  *   /list           – List all API entries (name + masked key only)
+ *   /search <term>  – Search entries by name, URL, category or notes
  *   /health         – Quick health check
  *
  * Inline buttons:
  *   📋 List       → /list
  *   ➕ Add        → opens add form
+ *   🔍 Search     → search prompt
  *   ℹ️ Info       → entry detail (name, url, category, notes, created/updated)
  *   ✏️  Edit       → updates entry
  *   🗑️  Delete     → deletes entry (confirmation required)
@@ -42,7 +44,7 @@ const WEBHOOK_PATH = '/telegram/' + (process.env.TELEGRAM_WEBHOOK_PATH || TOKEN)
 let bot = null;
 let db = null;
 
-// Per-chat state: Map<chatId, { state: 'awaiting_add_entry', messageId?: number }>
+// Per-chat state: Map<chatId, { state: string, entryId?: string, messageId?: number }>
 const chatState = new Map();
 
 // Per-chat rate limit: 20 messages/min (sliding window)
@@ -95,9 +97,13 @@ function chunk(text, limit = 4000) {
   return chunks;
 }
 
-async function sendChunks(chatId, text) {
-  for (const c of chunk(text)) {
-    await bot.sendMessage(chatId, c, { parse_mode: 'HTML' });
+// options (e.g. reply_markup) are attached to the LAST chunk so keyboards
+// survive multi-part messages.
+async function sendChunks(chatId, text, options = {}) {
+  const parts = chunk(text);
+  for (let i = 0; i < parts.length; i++) {
+    const extra = i === parts.length - 1 ? options : {};
+    await bot.sendMessage(chatId, parts[i], { parse_mode: 'HTML', ...extra });
   }
 }
 
@@ -108,6 +114,7 @@ function buildMenu() {
         [
           { text: '📋 List', callback_data: 'cmd:list' },
           { text: '➕ Add',  callback_data: 'cmd:add' },
+          { text: '🔍 Search', callback_data: 'cmd:search' },
         ],
         [
           { text: '💾 Export', callback_data: 'cmd:export' },
@@ -173,6 +180,18 @@ async function handleMessage(msg) {
       await processEditEntry(chatId, text);
       return;
     }
+  } else if (state && state.state === 'awaiting_search') {
+    if (text.toLowerCase() === '/cancel') {
+      chatState.delete(String(chatId));
+      await bot.sendMessage(chatId, '🚫 Search cancelled.');
+      return;
+    }
+    if (text.startsWith('/')) {
+      // A new command while waiting — fall through to normal command handling.
+    } else {
+      await performSearch(chatId, text);
+      return;
+    }
   }
 
   if (text.startsWith('/')) {
@@ -191,7 +210,9 @@ async function handleMessage(msg) {
           '/start – Show menu\n' +
           '/help  – This message\n' +
           '/list  – List all entries\n' +
+          '/search <term> – Search entries (name, URL, category, notes)\n' +
           '/add   – Add a new entry\n' +
+          '/edit  – Edit an entry\n' +
           '/health – Server health check\n' +
           '/export – Export all entries as JSON\n\n' +
           '<b>Note:</b> API keys shown are always masked.',
@@ -201,6 +222,16 @@ async function handleMessage(msg) {
       case '/list':
         await cmdList(chatId);
         break;
+      case '/search':
+      case '/suche': {
+        const q = text.split(' ').slice(1).join(' ').trim();
+        if (q) {
+          await performSearch(chatId, q);
+        } else {
+          await cmdSearchStart(chatId);
+        }
+        break;
+      }
       case '/add':
         await cmdAddStart(chatId);
         break;
@@ -249,6 +280,7 @@ async function handleCallbackQuery(cb) {
         switch (cmd) {
           case 'list':   chatState.delete(String(chatId)); await cmdList(chatId); break;
           case 'add':    await cmdAddStart(chatId); break;
+          case 'search': await cmdSearchStart(chatId); break;
           case 'health': await cmdHealth(chatId);   break;
           case 'export': await cmdExport(chatId);   break;
           case 'help':   await cmdHelp(chatId);     break;
@@ -323,6 +355,54 @@ async function cmdList(chatId, page = 0) {
       inline_keyboard: keyboard,
     },
   });
+}
+
+async function cmdSearchStart(chatId) {
+  chatState.set(String(chatId), { state: 'awaiting_search' });
+  await bot.sendMessage(chatId,
+    '🔍 <b>Search entries</b>\n\n' +
+    'Send a search term – matches <b>name</b>, <b>URL</b>, <b>category</b> and <b>notes</b>.\n' +
+    'Tip: you can also use <code>/search &lt;term&gt;</code> directly.\n\n' +
+    'Send /cancel to abort.',
+    { parse_mode: 'HTML' }
+  );
+}
+
+async function performSearch(chatId, query) {
+  chatState.delete(String(chatId));
+
+  // Parameterized LIKE query; strip LIKE wildcards from user input
+  const like = `%${query.replace(/[%_]/g, '')}%`;
+  const rows = await new Promise((res, rej) =>
+    db.all(
+      `SELECT id, name, category FROM api_entries
+       WHERE name LIKE ? OR url LIKE ? OR category LIKE ? OR notes LIKE ?
+       ORDER BY name LIMIT 20`,
+      [like, like, like, like],
+      (err, r) => err ? rej(err) : res(r)
+    )
+  );
+
+  if (!rows.length) {
+    await bot.sendMessage(chatId, `🔍 No entries found for <b>${escHtml(query)}</b>.`, { parse_mode: 'HTML' });
+    return;
+  }
+
+  const lines = rows.map((r, i) =>
+    `${i + 1}. ${escHtml(r.name)}${r.category ? ' [' + escHtml(r.category) + ']' : ''}`
+  );
+
+  const keyboard = rows.map(r => [{ text: `ℹ️ ${escHtml(r.name)}`, callback_data: `info:${r.id}` }]);
+  keyboard.push([{ text: '📋 Full list', callback_data: 'cmd:list' }]);
+
+  await sendChunks(chatId,
+    `🔍 <b>${rows.length}${rows.length === 20 ? '+' : ''} result${rows.length === 1 ? '' : 's'} for „${escHtml(query)}“</b>\n\n` + lines.join('\n'),
+    {
+      reply_markup: {
+        inline_keyboard: keyboard,
+      },
+    }
+  );
 }
 
 async function cmdInfo(chatId, id) {
