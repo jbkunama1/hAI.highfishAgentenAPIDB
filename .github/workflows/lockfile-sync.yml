@@ -1,0 +1,38 @@
+name: Lockfile Sync
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - package.json
+      - .github/workflows/lockfile-sync.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Refresh lockfile from package.json
+        run: npm install --package-lock-only
+
+      - name: Commit updated lockfile
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet package-lock.json; then
+            echo "package-lock.json already in sync"
+          else
+            git add package-lock.json
+            git commit -m "chore: sync package-lock.json with package.json"
+            git push
+          fi
