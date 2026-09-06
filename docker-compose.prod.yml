@@ -14,8 +14,12 @@ services:
       - AUTH_PASSWORD=${AUTH_PASSWORD:-}
       # CORS-Whitelist an deine tatsächliche Domain anpassen
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
+      # Telegram-Bot (optional; ohne TELEGRAM_BOT_TOKEN bleibt der Bot inaktiv)
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_ALLOWED_CHAT_IDS=${TELEGRAM_ALLOWED_CHAT_IDS:-}
     volumes:
       - highfish-data:/data
+      - /home/APIBACKUP:/backup
     restart: unless-stopped
     networks:
       - highfishNetwork
