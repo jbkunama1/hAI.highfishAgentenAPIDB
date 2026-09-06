@@ -2,8 +2,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install build dependencies for sqlite3 and dcron for automated backups
-RUN apk add --no-cache python3 make g++ curl dcron
+# Install build dependencies for sqlite3, the sqlite CLI (used by backup.sh)
+# and dcron for automated backups
+RUN apk add --no-cache python3 make g++ curl dcron sqlite
 
 # Copy package files
 COPY package*.json ./
@@ -14,6 +15,7 @@ RUN npm install
 # Copy application files
 COPY index.html ./
 COPY server.js ./
+COPY telegram.js ./
 COPY highfishapidblogo.png ./
 COPY backup.sh ./
 
