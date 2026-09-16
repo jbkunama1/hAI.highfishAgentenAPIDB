@@ -236,7 +236,11 @@ function initializeDatabase() {
 
     // Initialize Telegram bot
     const telegramInit = require('./telegram');
-    telegramInit.init({ db, app });
+    try {
+      telegramInit.init({ db, app });
+    } catch (err) {
+      console.error('[Telegram] Failed to initialize bot:', err);
+    }
 
     // --- API Routes ---
 
