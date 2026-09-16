@@ -641,13 +641,15 @@ function init({ db: _db, app }) {
 
   console.log(`[Telegram] Bot active – polling: ${!USE_WEBHOOK}, allowed chats: ${ALLOWED.join(', ') || '(none)'}`);
 
-    // Send startup notification to all allowed chats
+      // Send startup notification to all allowed chats asynchronously without crashing startup
     const startupMsg = '🤖 <b>hAI · HighFish Agenten API DB Bot gestartet</b>\n\nBereit für Befehle. Nutze /help für Übersicht.';
     for (const chatId of ALLOWED) {
-      bot.sendMessage(chatId, startupMsg, { parse_mode: 'HTML' }).catch(err => {
-        console.warn(`[Telegram] Startup message to ${chatId} failed:`, err.message);
-      });
-    }
+        if (chatId) {
+          bot.sendMessage(chatId, startupMsg, { parse_mode: 'HTML' }).catch(err => {
+            console.warn(`[Telegram] Startup message to ${chatId} failed:`, err.message);
+          });
+        }
+      }
   }
 
 module.exports = { init, chunk };
