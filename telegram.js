@@ -204,7 +204,10 @@ async function handleMessage(msg) {
           { parse_mode: 'HTML', ...buildMenu() }
         );
         break;
-      case '/help':
+            case '/test':
+              await bot.sendMessage(chatId, '✅ Bot is working!', { parse_mode: 'HTML' });
+              break;
+            case '/help':
         await bot.sendMessage(chatId,
           '📖 <b>Available commands</b>\n\n' +
           '/start – Show menu\n' +
@@ -625,8 +628,16 @@ function init({ db: _db, app }) {
   const TelegramBot = require('node-telegram-bot-api');
   bot = new TelegramBot(TOKEN, { polling: !USE_WEBHOOK });
 
-  bot.on('message', handleMessage);
-  bot.on('callback_query', handleCallbackQuery);
+    bot.on('polling_error', (error) => {
+      console.error('[Telegram] Polling error:', error.code, error.message);
+    });
+
+    bot.on('webhook_error', (error) => {
+      console.error('[Telegram] Webhook error:', error.code, error.message);
+    });
+
+    bot.on('message', handleMessage);
+    bot.on('callback_query', handleCallbackQuery);
 
   if (USE_WEBHOOK) {
     const url = `https://your-domain.com${WEBHOOK_PATH}`;
@@ -638,6 +649,14 @@ function init({ db: _db, app }) {
       res.sendStatus(200);
     });
   }
+
+  bot.on('polling_error', (error) => {
+    console.error('[Telegram] Polling error:', error.code, error.message);
+  });
+
+  bot.on('webhook_error', (error) => {
+    console.error('[Telegram] Webhook error:', error.code, error.message);
+  });
 
   console.log(`[Telegram] Bot active – polling: ${!USE_WEBHOOK}, allowed chats: ${ALLOWED.join(', ') || '(none)'}`);
 
