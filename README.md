@@ -449,28 +449,6 @@ Optionaler Telegram-Bot zur Verwaltung von API-Einträgen direkt vom Smartphone 
 | ❤️ Health | Server-Status prüfen |
 | ❓ Help | Hilfe anzeigen |
 
-### Admin-Funktionen
-
-**Admin-Berechtigungen** werden aktiviert durch:
-
-```bash
-# Setze einen separaten Admin API Key für erweiterte Funktionen
-TELEGRAM_ADMIN_API_KEY=dein-admin-key
-```
-
-**Admin-Features:**
-- Zugriff auf erweiterte Bot-Funktionen
-- Automatische Erkenneung von Admin-Rechten (gleicher Key wie `API_KEY`)
-- State-gesteuerte Eingaben (z.B. mehrstufiges Hinzufügen/Bearbeiten)
-- Rate Limiting (20 Nachrichten/Minute pro Chat)
-- Automatische Chunking langer Nachrichten
-
-**Sicherheit:**
-- Strict Allowlist für Chat IDs (`TELEGRAM_ALLOWED_CHAT_IDS`)
-- Alle API-Schlüssel werden in Telegram-Nachrichten maskiert (`sk-xxxx…xxxx`)
-- Der Bot antwortet nur auf autorisierte Chat-IDs
-- Error handling für fehlerhafte Eingaben
-
 ---
 
 ## Datenstruktur
