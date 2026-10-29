@@ -16,15 +16,21 @@
  *   /list           – List all API entries (name + masked key only)
  *   /search <term>  – Search entries by name, URL, category or notes
  *   /health         – Quick health check
+ *   /export         – Export all entries as JSON
+ *   /backup         – Create backup (PDF + JSON export)
+ *   /cancel         – Cancel ongoing operation
  *
  * Inline buttons:
  *   📋 List       → /list
  *   ➕ Add        → opens add form
  *   🔍 Search     → search prompt
+ *   🛡️ Backup     → creates PDF + JSON backup
+ *   💾 Export     → sends JSON export
  *   ℹ️ Info       → entry detail (name, url, category, notes, created/updated)
  *   ✏️  Edit       → updates entry
  *   🗑️  Delete     → deletes entry (confirmation required)
- *   💾 Export      → sends JSON export
+ *   ❤️  Health     → server health check
+ *   ❓ Help       → help message
  *
  * Security:
  *   • Only chat IDs in TELEGRAM_ALLOWED_CHAT_IDS are served
@@ -118,6 +124,7 @@ function buildMenu() {
         ],
         [
           { text: '💾 Export', callback_data: 'cmd:export' },
+          { text: '🛡️ Backup', callback_data: 'cmd:backup' },
           { text: '❤️  Health', callback_data: 'cmd:health' },
         ],
         [
@@ -217,10 +224,12 @@ async function handleMessage(msg) {
           '/add   – Add a new entry\n' +
           '/edit  – Edit an entry\n' +
           '/health – Server health check\n' +
-          '/export – Export all entries as JSON\n\n' +
-          '<b>Note:</b> API keys shown are always masked.',
-          { parse_mode: 'HTML' }
-        );
+                      '/export – Export all entries as JSON\n' +
+                      '/backup – Create backup (PDF + JSON)\n' +
+                      '/cancel – Cancel ongoing operation\n\n' +
+                      '<b>Note:</b> API keys shown are always masked.',
+                      { parse_mode: 'HTML' }
+                    );
         break;
       case '/list':
         await cmdList(chatId);
@@ -247,13 +256,16 @@ async function handleMessage(msg) {
       case '/export':
         await cmdExport(chatId);
         break;
-      case '/cancel':
-        if (chatState.delete(String(chatId))) {
-          await bot.sendMessage(chatId, '🚫 Cancelled.');
-        } else {
-          await bot.sendMessage(chatId, 'Nothing to cancel.');
-        }
-        break;
+            case '/backup':
+              await cmdBackup(chatId);
+              break;
+            case '/cancel':
+              if (chatState.delete(String(chatId))) {
+                await bot.sendMessage(chatId, '🚫 Cancelled.');
+              } else {
+                await bot.sendMessage(chatId, 'Nothing to cancel.');
+              }
+              break;
       default:
         await bot.sendMessage(chatId, '❓ Unknown command. Send /help for options.');
     }
@@ -286,11 +298,12 @@ async function handleCallbackQuery(cb) {
           case 'search': await cmdSearchStart(chatId); break;
           case 'health': await cmdHealth(chatId);   break;
           case 'export': await cmdExport(chatId);   break;
-          case 'help':   await cmdHelp(chatId);     break;
-          case 'edit':   await cmdEditStart(chatId, cb.message.message_id, cb.message.text); break;
-          default:
-            await bot.sendMessage(chatId, '❓ Unknown action.');
-        }
+                  case 'backup': await cmdBackup(chatId);   break;
+                  case 'help':   await cmdHelp(chatId);     break;
+                  case 'edit':   await cmdEditStart(chatId, cb.message.message_id, cb.message.text); break;
+                  default:
+                    await bot.sendMessage(chatId, '❓ Unknown action.');
+                }
       }
     } else if (data.startsWith('info:')) {
     await cmdInfo(chatId, data.slice(5));
@@ -598,6 +611,113 @@ async function cmdExport(chatId) {
   const json = JSON.stringify(rows, null, 2);
   await bot.sendMessage(chatId, '💾 <b>Export</b>\nSending JSON…', { parse_mode: 'HTML' });
   await bot.sendMessage(chatId, `<pre>${escHtml(json)}</pre>`, { parse_mode: 'HTML' });
+}
+
+async function cmdBackup(chatId) {
+  try {
+    await bot.sendMessage(chatId, '🔄 <b>Starting backup...</b>\n\nCreating backup and PDF export...', { parse_mode: 'HTML' });
+    
+    // Get all entries for backup
+    const rows = await new Promise((res, rej) =>
+      db.all('SELECT name, url, apiKey, category, notes, created_at, updated_at FROM api_entries ORDER BY name', [], (err, r) =>
+        err ? rej(err) : res(r)
+      )
+    );
+
+    if (!rows.length) {
+      await bot.sendMessage(chatId, '📭 No entries to backup.', { parse_mode: 'HTML' });
+      return;
+    }
+
+    // Create PDF content
+    const pdfContent = await createPDFBackup(rows);
+    
+    // Create JSON backup
+    const jsonContent = JSON.stringify(rows, null, 2);
+    
+    // Send PDF backup
+    await bot.sendDocument(chatId, {
+      source: Buffer.from(pdfContent),
+      filename: `highfish_backup_${new Date().toISOString().split('T')[0]}.pdf`
+    });
+    
+    // Send JSON backup
+    await bot.sendDocument(chatId, {
+      source: Buffer.from(jsonContent),
+      filename: `highfish_backup_${new Date().toISOString().split('T')[0]}.json`
+    });
+    
+    await bot.sendMessage(chatId, '✅ <b>Backup completed!</b>\n\nYou should receive:\n• PDF backup document\n• JSON export file\n\n🔒 All data is exported to your local device.', { parse_mode: 'HTML' });
+    
+  } catch (error) {
+    console.error('[Telegram] Backup error:', error);
+    await bot.sendMessage(chatId, '❌ <b>Backup failed!</b>\n\nError: ' + escHtml(error.message), { parse_mode: 'HTML' });
+  }
+}
+
+async function createPDFBackup(rows) {
+  const PDFDocument = require('pdfkit');
+  const doc = new PDFDocument();
+  const chunks = [];
+  
+  doc.on('data', chunks.push.bind(chunks));
+  
+  // Add title
+  doc.fontSize(20).text('hAI · HighFish Agenten API DB Backup', 0, 20, { align: 'center' });
+  doc.fontSize(12).text(`Generated: ${new Date().toLocaleString()}`, 0, 50, { align: 'center' });
+  doc.text(`Total entries: ${rows.length}`, 0, 70, { align: 'center' });
+  doc.moveDown();
+  
+  // Add table of contents
+  doc.fontSize(16).text('Table of Contents', 0, 100, { underline: true });
+  doc.fontSize(12).text('1. Entry Details', 0, 120);
+  doc.text('2. Backup Summary', 0, 140);
+  doc.moveDown();
+  
+  // Entry details
+  doc.fontSize(16).text('1. Entry Details', 0, 180, { underline: true });
+  doc.moveDown();
+  
+  rows.forEach((row, index) => {
+    doc.fontSize(14).text(`${index + 1}. ${row.name}`, 0, doc.y);
+    
+    if (row.category) {
+      doc.fontSize(10).text(`   Category: ${row.category}`, 0, doc.y);
+    }
+    
+    doc.fontSize(10).text(`   URL: ${row.url}`, 0, doc.y);
+    doc.fontSize(10).text(`   API Key: ${mask(row.apiKey)}`, 0, doc.y);
+    
+    if (row.notes) {
+      const wrappedNotes = doc.widthOfString(row.notes) > doc.width - 20
+        ? doc.widthOfString(row.notes)
+        : row.notes.length;
+      doc.fontSize(10).text(`   Notes: ${row.notes}`, 0, doc.y, { width: doc.width - 20 });
+    }
+    
+    doc.fontSize(9).text(`   Created: ${new Date(row.created_at).toLocaleString()}`, 0, doc.y);
+    doc.fontSize(9).text(`   Updated: ${new Date(row.updated_at).toLocaleString()}`, 0, doc.y);
+    doc.moveDown();
+  });
+  
+  // Backup summary
+  doc.fontSize(16).text('2. Backup Summary', 0, doc.y + 20, { underline: true });
+  doc.moveDown();
+  
+  doc.fontSize(12).text('This backup contains all API entries from your hAI · HighFish Agenten API DB.', 0, doc.y);
+  doc.text('The JSON format can be imported back to restore your data.', 0, doc.y + 15);
+  doc.text('PDF format provides a readable formatted version of your API keys.', 0, doc.y + 30);
+  doc.moveDown();
+
+  doc.fontSize(10).text('⚠️ Security Note: This backup contains sensitive API keys.', 0, doc.y);
+  doc.text('Store it securely and delete when no longer needed.', 0, doc.y + 15);
+
+  doc.end();
+
+  return new Promise((resolve, reject) => {
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+  });
 }
 
 async function cmdHelp(chatId) {
