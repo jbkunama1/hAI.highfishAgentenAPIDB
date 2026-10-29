@@ -437,6 +437,7 @@ Optionaler Telegram-Bot zur Verwaltung von API-Einträgen direkt vom Smartphone 
 | `/health` | Server-Gesundheitscheck |
 | `/export` | JSON-Export aller Einträge |
 | `/backup` | PDF + JSON Backup erstellen |
+| `/status` | Systemstatus und Übersicht |
 | `/cancel` | Aktuellen Vorgang abbrechen |
 
 ### Inline-Menü
@@ -448,6 +449,7 @@ Optionaler Telegram-Bot zur Verwaltung von API-Einträgen direkt vom Smartphone 
 | 🔍 Search | Suche starten |
 | 🛡️ Backup | PDF + JSON Backup erstellen |
 | 💾 Export | JSON exportieren |
+| 📊 Status | Systemstatus und Übersicht |
 | ❤️ Health | Server-Status prüfen |
 | ❓ Help | Hilfe anzeigen |
 
@@ -471,6 +473,31 @@ Optionaler Telegram-Bot zur Verwaltung von API-Einträgen direkt vom Smartphone 
 
 **Sicherheitshinweis:**
 Die Backup-Dateien enthalten sensible API-Schlüssel. Speichern Sie sie sicher und löschen Sie sie, wenn sie nicht mehr benötigt werden.
+
+### Automatische Benachrichtigungen
+
+Der Bot sendet automatisch Benachrichtigungen:
+
+**🚀 Start-Benachrichtigung:**
+- Wird gesendet, wenn der Bot startet
+- Einmalig pro Start zur Bestätigung
+- Zeigt Bot-Status und verfügbare Befehle an
+
+**📊 Tägliche Status-Benachrichtigung:**
+- Wird einmal täglich gesendet (standardmäßig um 09:00 Uhr)
+- Zeigt Systemstatus, Eintragsanzahl, Uptime
+- Kann konfiguriert werden mit `TELEGRAM_DAILY_TIME` (Format: HH:MM)
+- Umgehung bei Fehlern oder Rate-Limits
+
+**Umgebungsvariablen:**
+| Variable | Standard | Beschreibung |
+|----------|----------|--------------|
+| `TELEGRAM_DAILY_TIME` | `09:00` | Uhrzeit für tägliche Status-Benachrichtigung |
+
+**Automatische Aktionen:**
+- Bot startet → Startup-Benachrichtigung nach 2 Sekunden
+- Täglich geplant → Status-Benachrichtigung um konfigurierter Zeit
+- Fehlerbehandlung → Protokollierung bei Benachrichtigungsfehlern
 
 ---
 
