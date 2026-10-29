@@ -55,6 +55,7 @@
 - ✅ **Admin-Flag** für User (`is_admin` Spalte)
 - ✅ Rate Limiting (100 Anfragen/min pro IP)
 - ✅ **Authentifizierung** auf allen API-Endpunkten (Bearer-Token oder Basic Auth)
+- ✅ **Telegram Bot** mit Inline-Menü und Admin-Rechten
 - ✅ **CI/CD** – automatischer Docker-Build per GitHub Actions (bei Push + manuell)
 - ✅ Docker-ready (inkl. Volume-Persistenz, läuft als non-root)
 - ✅ Integriertes Web-UI
@@ -430,8 +431,12 @@ Optionaler Telegram-Bot zur Verwaltung von API-Einträgen direkt vom Smartphone 
 | `/start` | Willkommensnachricht + Menü |
 | `/help` | Hilfe |
 | `/list` | Alle API-Einträge auflisten |
+| `/search <term>` | Einträge durchsuchen (Name, URL, Kategorie, Notizen) |
+| `/add` | Neuen Eintrag hinzufügen |
+| `/edit` | Bestehenden Eintrag bearbeiten |
 | `/health` | Server-Gesundheitscheck |
 | `/export` | JSON-Export aller Einträge |
+| `/cancel` | Aktuellen Vorgang abbrechen |
 
 ### Inline-Menü
 
@@ -439,11 +444,32 @@ Optionaler Telegram-Bot zur Verwaltung von API-Einträgen direkt vom Smartphone 
 |-------|--------|
 | 📋 List | Einträge auflisten |
 | ➕ Add | Neuen Eintrag hinzufügen |
+| 🔍 Search | Suche starten |
 | 💾 Export | JSON exportieren |
 | ❤️ Health | Server-Status prüfen |
 | ❓ Help | Hilfe anzeigen |
 
-**Sicherheit:** Alle API-Schlüssel werden in Telegram-Nachrichten maskiert (`sk-xxxx…xxxx`). Der Bot antwortet nur auf autorisierte Chat-IDs.
+### Admin-Funktionen
+
+**Admin-Berechtigungen** werden aktiviert durch:
+
+```bash
+# Setze einen separaten Admin API Key für erweiterte Funktionen
+TELEGRAM_ADMIN_API_KEY=dein-admin-key
+```
+
+**Admin-Features:**
+- Zugriff auf erweiterte Bot-Funktionen
+- Automatische Erkenneung von Admin-Rechten (gleicher Key wie `API_KEY`)
+- State-gesteuerte Eingaben (z.B. mehrstufiges Hinzufügen/Bearbeiten)
+- Rate Limiting (20 Nachrichten/Minute pro Chat)
+- Automatische Chunking langer Nachrichten
+
+**Sicherheit:**
+- Strict Allowlist für Chat IDs (`TELEGRAM_ALLOWED_CHAT_IDS`)
+- Alle API-Schlüssel werden in Telegram-Nachrichten maskiert (`sk-xxxx…xxxx`)
+- Der Bot antwortet nur auf autorisierte Chat-IDs
+- Error handling für fehlerhafte Eingaben
 
 ---
 
