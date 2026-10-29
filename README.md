@@ -436,6 +436,7 @@ Optionaler Telegram-Bot zur Verwaltung von API-Einträgen direkt vom Smartphone 
 | `/edit` | Bestehenden Eintrag bearbeiten |
 | `/health` | Server-Gesundheitscheck |
 | `/export` | JSON-Export aller Einträge |
+| `/backup` | PDF + JSON Backup erstellen |
 | `/cancel` | Aktuellen Vorgang abbrechen |
 
 ### Inline-Menü
@@ -445,9 +446,31 @@ Optionaler Telegram-Bot zur Verwaltung von API-Einträgen direkt vom Smartphone 
 | 📋 List | Einträge auflisten |
 | ➕ Add | Neuen Eintrag hinzufügen |
 | 🔍 Search | Suche starten |
+| 🛡️ Backup | PDF + JSON Backup erstellen |
 | 💾 Export | JSON exportieren |
 | ❤️ Health | Server-Status prüfen |
 | ❓ Help | Hilfe anzeigen |
+
+### Backup-Funktion
+
+**Backup-Befehl:**
+- `/backup` erstellt ein komplettes Backup aller API-Einträge
+
+**Backup-Inhalt:**
+- 📄 **PDF-Backup** – Lesbares Format mit allen Einträgen inklusive Metadaten
+- 📋 **JSON-Backup** – Vollständiges Exportformat zur Wiederherstellung
+- 🔐 **API-Schlüssel werden maskiert angezeigt** (`sk-xxxx…xxxx`)
+- 📅 **Zeitstempel und Backup-Informationen**
+
+**Backup-Prozess:**
+1. Benutzer sendet `/backup` im Telegram-Bot
+2. Bot generiert PDF mit strukturiertem Inhalt
+3. Bot generiert JSON mit allen Einträgen
+4. Beide Dateien werden an den Benutzer gesendet
+5. Bot bestätigt erfolgreichen Backup-Vorgang
+
+**Sicherheitshinweis:**
+Die Backup-Dateien enthalten sensible API-Schlüssel. Speichern Sie sie sicher und löschen Sie sie, wenn sie nicht mehr benötigt werden.
 
 ---
 
