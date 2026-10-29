@@ -9,6 +9,7 @@
  *   3. Set env: TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_CHAT_IDS (comma-separated)
  *      If TELEGRAM_BOT_TOKEN is absent the module stays inactive (no error).
  *   4. Optionally set TELEGRAM_ADMIN_API_KEY to match API_KEY for admin auth.
+ *   5. Optionally set TELEGRAM_DAILY_TIME for status notifications (default: 09:00)
  *
  * Commands:
  *   /start          – Welcome message + keyboard menu
@@ -18,7 +19,13 @@
  *   /health         – Quick health check
  *   /export         – Export all entries as JSON
  *   /backup         – Create backup (PDF + JSON export)
+ *   /status         – Daily status overview (manual)
  *   /cancel         – Cancel ongoing operation
+ *
+ * Notifications:
+ *   🚀 Startup – Bot sends welcome message when starting
+ *   📊 Daily – Automatic status once per day (configurable time)
+ *   🛡️ Backup – PDF + JSON backup documents
  *
  * Inline buttons:
  *   📋 List       → /list
@@ -26,6 +33,7 @@
  *   🔍 Search     → search prompt
  *   🛡️ Backup     → creates PDF + JSON backup
  *   💾 Export     → sends JSON export
+ *   📊 Status     → manual status overview
  *   ℹ️ Info       → entry detail (name, url, category, notes, created/updated)
  *   ✏️  Edit       → updates entry
  *   🗑️  Delete     → deletes entry (confirmation required)
@@ -58,6 +66,11 @@ const RATE_LIMIT = 20;
 const RATE_WINDOW_MS = 60 * 1000;
 // Map<chatId, number[]> timestamps of recent messages (oldest first)
 const rateBuckets = new Map();
+
+// ── Notification tracking ──────────────────────────────────────────────────────
+let lastStartupNotification = null; // Date of last startup notification
+let lastDailyNotification = null;   // Date of last daily notification
+const DAILY_NOTIFICATION_TIME = process.env.TELEGRAM_DAILY_TIME || '09:00'; // Default 9 AM
 
 function rateLimit(chatId) {
   const key = String(chatId);
@@ -125,6 +138,7 @@ function buildMenu() {
         [
           { text: '💾 Export', callback_data: 'cmd:export' },
           { text: '🛡️ Backup', callback_data: 'cmd:backup' },
+          { text: '📊 Status', callback_data: 'cmd:status' },
           { text: '❤️  Health', callback_data: 'cmd:health' },
         ],
         [
@@ -226,6 +240,7 @@ async function handleMessage(msg) {
           '/health – Server health check\n' +
                       '/export – Export all entries as JSON\n' +
                       '/backup – Create backup (PDF + JSON)\n' +
+                      '/status – Daily status overview\n' +
                       '/cancel – Cancel ongoing operation\n\n' +
                       '<b>Note:</b> API keys shown are always masked.',
                       { parse_mode: 'HTML' }
@@ -258,6 +273,9 @@ async function handleMessage(msg) {
         break;
             case '/backup':
               await cmdBackup(chatId);
+              break;
+            case '/status':
+              await cmdDailyStatus(chatId);
               break;
             case '/cancel':
               if (chatState.delete(String(chatId))) {
@@ -299,6 +317,7 @@ async function handleCallbackQuery(cb) {
           case 'health': await cmdHealth(chatId);   break;
           case 'export': await cmdExport(chatId);   break;
                   case 'backup': await cmdBackup(chatId);   break;
+                  case 'status': await cmdDailyStatus(chatId); break;
                   case 'help':   await cmdHelp(chatId);     break;
                   case 'edit':   await cmdEditStart(chatId, cb.message.message_id, cb.message.text); break;
                   default:
@@ -720,6 +739,44 @@ async function createPDFBackup(rows) {
   });
 }
 
+async function cmdDailyStatus(chatId) {
+  try {
+    // Get system statistics
+    const totalEntries = await new Promise((res, rej) =>
+      db.get('SELECT COUNT(*) AS count FROM api_entries', [], (err, r) =>
+        err ? rej(err) : res(r.count)
+      )
+    );
+
+    const uptime = process.uptime();
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    
+    const statusMessage = days > 0 
+      ? `🐟 <b>hAI · HighFish Agenten API DB - Status</b>\n\n` +
+        `📊 <b>System Status:</b> OK\n` +
+        `📋 Total API Entries: ${totalEntries}\n` +
+        `⏱️ Uptime: ${days}d ${hours}h\n` +
+        `📡 Bot Status: Active\n` +
+        `🔧 Last Backup: Use /backup\n\n` +
+        `📖 Available: /help | /list | /search\n` +
+        `🛡️ Backup: /backup | Export: /export`
+      : `🐟 <b>hAI · HighFish Agenten API DB - Status</b>\n\n` +
+        `📊 <b>System Status:</b> OK\n` +
+        `📋 Total API Entries: ${totalEntries}\n` +
+        `⏱️ Uptime: ${hours}h\n` +
+        `📡 Bot Status: Active\n` +
+        `🔧 Last Backup: Use /backup\n\n` +
+        `📖 Available: /help | /list | /search\n` +
+        `🛡️ Backup: /backup | Export: /export`;
+
+    await bot.sendMessage(chatId, statusMessage, { parse_mode: 'HTML' });
+  } catch (error) {
+    console.error('[Telegram] Status command error:', error);
+    await bot.sendMessage(chatId, '❌ <b>Error fetching status</b>\n\nPlease try again later.', { parse_mode: 'HTML' });
+  }
+}
+
 async function cmdHelp(chatId) {
   await handleMessage({ chat: { id: chatId }, text: '/help' });
 }
@@ -729,6 +786,115 @@ function escHtml(str) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
+}
+
+// ── Notification functions ─────────────────────────────────────────────────────
+async function sendStartupNotifications() {
+  if (!TOKEN || !ALLOWED.length) return;
+  
+  const now = new Date();
+  // Only send startup notification once per hour to prevent spam
+  if (lastStartupNotification && (now - lastStartupNotification) < 60 * 60 * 1000) return;
+  
+  try {
+    for (const chatId of ALLOWED) {
+      if (checkRateLimit(chatId, bot)) {
+        await bot.sendMessage(chatId, 
+          '🐟 <b>hAI · HighFish Agenten API DB</b>\n\n' +
+          '✅ Bot started successfully\n' +
+          '📡 Ready for commands\n' +
+          '🛡️ Use /backup to create backup\n' +
+          '🔍 Use /help for available commands',
+          { parse_mode: 'HTML' }
+        );
+      }
+    }
+    lastStartupNotification = now;
+    console.log('[Telegram] Startup notifications sent');
+  } catch (error) {
+    console.error('[Telegram] Startup notification error:', error.message);
+  }
+}
+
+async function sendDailyStatus() {
+  if (!TOKEN || !ALLOWED.length) return;
+  
+  const now = new Date();
+  const today = now.toDateString();
+  
+  // Check if we've already sent today's notification
+  if (lastDailyNotification && lastDailyNotification.toDateString() === today) return;
+  
+  try {
+    // Get system statistics
+    const totalEntries = await new Promise((res, rej) =>
+      db.get('SELECT COUNT(*) AS count FROM api_entries', [], (err, r) =>
+        err ? rej(err) : res(r.count)
+      )
+    );
+
+    const uptime = process.uptime();
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    
+    for (const chatId of ALLOWED) {
+      if (checkRateLimit(chatId, bot)) {
+        const statusMessage = days > 0 
+          ? `🐟 <b>hAI · HighFish Agenten API DB - Status</b>\n\n` +
+            `📊 <b>System Status:</b> OK\n` +
+            `📋 Total API Entries: ${totalEntries}\n` +
+            `⏱️ Uptime: ${days}d ${hours}h\n` +
+            `📡 Bot Status: Active\n` +
+            `🔧 Last Backup: Use /backup\n\n` +
+            `📖 Available: /help | /list | /search\n` +
+            `🛡️ Backup: /backup | Export: /export`
+          : `🐟 <b>hAI · HighFish Agenten API DB - Status</b>\n\n` +
+            `📊 <b>System Status:</b> OK\n` +
+            `📋 Total API Entries: ${totalEntries}\n` +
+            `⏱️ Uptime: ${hours}h\n` +
+            `📡 Bot Status: Active\n` +
+            `🔧 Last Backup: Use /backup\n\n` +
+            `📖 Available: /help | /list | /search\n` +
+            `🛡️ Backup: /backup | Export: /export`;
+
+        await bot.sendMessage(chatId, statusMessage, { parse_mode: 'HTML' });
+      }
+    }
+    
+    lastDailyNotification = now;
+    console.log('[Telegram] Daily status notification sent');
+  } catch (error) {
+    console.error('[Telegram] Daily status notification error:', error.message);
+  }
+}
+
+function startDailyTimer() {
+  if (!TOKEN || !ALLOWED.length) return;
+  
+  // Parse daily time (default: 09:00)
+  const [hours, minutes] = DAILY_NOTIFICATION_TIME.split(':').map(Number);
+  
+  const scheduleDailyNotification = () => {
+    const now = new Date();
+    const nextNotification = new Date();
+    nextNotification.setHours(hours, minutes, 0, 0);
+    
+    // If we've passed today's notification time, schedule for tomorrow
+    if (nextNotification <= now) {
+      nextNotification.setDate(nextNotification.getDate() + 1);
+    }
+    
+    const delay = nextNotification.getTime() - now.getTime();
+    console.log(`[Telegram] Next daily status scheduled for: ${nextNotification.toLocaleString()}`);
+    
+    setTimeout(() => {
+      sendDailyStatus();
+      scheduleDailyNotification(); // Schedule next day
+    }, delay);
+  };
+  
+  // Start the daily schedule
+  scheduleDailyNotification();
 }
 
 // ── Module init ────────────────────────────────────────────────────────────────
@@ -780,9 +946,17 @@ function init({ db: _db, app }) {
 
   console.log(`[Telegram] Bot active – polling: ${!USE_WEBHOOK}, allowed chats: ${ALLOWED.join(', ') || '(none)'}`);
 
-  // Do not send startup notification synchronously or automatically on boot to prevent potential loops/errors
-  // Users can use /start manually.
-  // const startupMsg = ...
+  // Send startup notifications
+  setTimeout(() => {
+    sendStartupNotifications().catch(err => {
+      console.error('[Telegram] Startup notification failed:', err.message);
+    });
+  }, 2000); // Wait 2 seconds to ensure bot is ready
+
+  // Start daily status notifications
+  startDailyTimer();
+
+  console.log('[Telegram] Notifications enabled - startup and daily status configured');
   }
 
 module.exports = { init, chunk };
