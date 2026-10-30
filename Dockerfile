@@ -35,9 +35,9 @@ RUN chown -R node:node /app /data /backup
 # Expose port
 EXPOSE 3000
 
-# Health check using curl
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+# Health check using curl (increased start period for Docker rebuild)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
-# Start application only (disable cron temporarily to isolate issue)
-CMD npm start
+# Start application (disable cron for stability)
+CMD node server.js
