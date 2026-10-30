@@ -234,13 +234,17 @@ function initializeDatabase() {
   });
 }
 
-    // Initialize Telegram bot
-    try {
-      const telegramInit = require('./telegram');
-      telegramInit.init({ db, app });
-    } catch (err) {
-      console.error('[Telegram] Failed to initialize bot:', err);
-    }
+    // Initialize Telegram bot after database connection
+    setTimeout(() => {
+      try {
+        const telegramInit = require('./telegram');
+        telegramInit.init({ db, app });
+        console.log('[Telegram] Bot initialization complete');
+      } catch (err) {
+        console.error('[Telegram] Failed to initialize bot:', err);
+        console.log('[Telegram] Starting without bot functionality');
+      }
+    }, 1000); // 1 second delay to ensure DB is ready
 
     // --- API Routes ---
 
