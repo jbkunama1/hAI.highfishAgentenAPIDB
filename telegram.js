@@ -10,8 +10,15 @@
  *      If TELEGRAM_BOT_TOKEN is absent the module stays inactive (no error).
  *   4. Optionally set TELEGRAM_ADMIN_API_KEY to match API_KEY for admin auth.
  *   5. Optionally set TELEGRAM_DAILY_TIME for status notifications (default: 09:00)
+ *   6. Optionally set TELEGRAM_THEME to change message styling (ocean, forest, sunset)
  *
- * Commands:
+ * Theme System (Mobile-First):
+  *   🌊 Ocean Blue - Default mobile-optimized blue theme
+  *   🌲 Forest Green - Nature-inspired green theme  
+  *   🌅 Sunset Orange - Warm orange theme
+  *   Use /theme to switch themes or /themes to see options
+  *
+  * Commands:
  *   /start          – Welcome message + keyboard menu
  *   /help           – Help text
  *   /list           – List all API entries (name + masked key only)
@@ -45,6 +52,9 @@
  *   • apiKey values are always masked (sk-xxxx…xxxx)
  */
 
+// Import theme system
+const themes = require('./themes.js');
+
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const ALLOWED = process.env.TELEGRAM_ALLOWED_CHAT_IDS
   ? process.env.TELEGRAM_ALLOWED_CHAT_IDS.split(',').map(s => s.trim())
@@ -52,7 +62,14 @@ const ALLOWED = process.env.TELEGRAM_ALLOWED_CHAT_IDS
 const ADMIN_KEY = process.env.TELEGRAM_ADMIN_API_KEY || process.env.API_KEY || '';
 const PORT = process.env.TELEGRAM_WEBHOOK_PORT || process.env.PORT || 3000;
 const USE_WEBHOOK = process.env.TELEGRAM_USE_WEBHOOK === 'true';
-const WEBHOOK_PATH = '/telegram/' + (process.env.TELEGRAM_WEBHOOK_PATH || TOKEN);
+const WEBHOOK_PATH = process.env.TELEGRAM_WEBHOOK_PATH || `/telegram/${TOKEN}`;
+
+// Theme configuration
+const DEFAULT_THEME = process.env.TELEGRAM_THEME || 'ocean';
+themes.setTheme(DEFAULT_THEME);
+
+// User theme preferences (stored in memory for chat persistence)
+const userThemes = new Map(); // chatId -> themeName
 
 // ── Lazy-load bot only when token is configured ─────────────────────────────────
 let bot = null;
@@ -71,6 +88,10 @@ const rateBuckets = new Map();
 let lastStartupNotification = null; // Date of last startup notification
 let lastDailyNotification = null;   // Date of last daily notification
 const DAILY_NOTIFICATION_TIME = process.env.TELEGRAM_DAILY_TIME || '09:00'; // Default 9 AM
+
+// Cleanup functions to prevent memory leaks
+let dailyTimer = null;
+let startupTimeout = null;
 
 function rateLimit(chatId) {
   const key = String(chatId);
@@ -127,6 +148,14 @@ async function sendChunks(chatId, text, options = {}) {
 }
 
 function buildMenu() {
+  const formatters = themes.getFormatters();
+  const userTheme = userThemes.get(chatId) || DEFAULT_THEME;
+  
+  const themeButtons = themes.getAllThemes().map(theme => ({
+    text: theme.current ? `🌟 ${theme.name} (current)` : `🎨 ${theme.name}`,
+    callback_data: `cmd:theme_${theme.id}`
+  }));
+
   return {
     reply_markup: {
       inline_keyboard: [
@@ -142,6 +171,7 @@ function buildMenu() {
           { text: '❤️  Health', callback_data: 'cmd:health' },
         ],
         [
+          { text: '🎨 Themes', callback_data: 'cmd:themes' },
           { text: '❓ Help', callback_data: 'cmd:help' },
         ],
       ],
@@ -174,6 +204,8 @@ async function handleMessage(msg) {
   if (!checkRateLimit(chatId, bot)) return;
 
   const text = (msg.text || '').trim();
+    const formatters = themes.getFormatters();
+    const userTheme = userThemes.get(chatId) || DEFAULT_THEME;
 
   // State machine: if this chat is waiting for input, the next non-command message is the data.
   const state = chatState.get(String(chatId));
@@ -277,6 +309,12 @@ async function handleMessage(msg) {
             case '/status':
               await cmdDailyStatus(chatId);
               break;
+            case '/theme':
+              await cmdTheme(chatId);
+              break;
+            case '/themes':
+              await cmdThemes(chatId);
+              break;
             case '/cancel':
               if (chatState.delete(String(chatId))) {
                 await bot.sendMessage(chatId, '🚫 Cancelled.');
@@ -319,11 +357,12 @@ async function handleCallbackQuery(cb) {
                   case 'backup': await cmdBackup(chatId);   break;
                   case 'status': await cmdDailyStatus(chatId); break;
                   case 'help':   await cmdHelp(chatId);     break;
-                  case 'edit':   await cmdEditStart(chatId, cb.message.message_id, cb.message.text); break;
-                  default:
-                    await bot.sendMessage(chatId, '❓ Unknown action.');
-                }
-      }
+                          case 'themes': await cmdThemes(chatId); break;
+                          case 'edit':   await cmdEditStart(chatId, cb.message.message_id, cb.message.text); break;
+                          default:
+                            await bot.sendMessage(chatId, '❓ Unknown action.');
+                        }
+              }
     } else if (data.startsWith('info:')) {
     await cmdInfo(chatId, data.slice(5));
   } else if (data.startsWith('del:')) {
@@ -342,8 +381,22 @@ async function handleCallbackQuery(cb) {
       'Leave fields empty to keep current values. Send /cancel to abort.',
       { parse_mode: 'HTML' }
     );
+    } else if (data.startsWith('theme:')) {
+      const themeId = data.slice(6);
+      if (themes.setTheme(themeId)) {
+        userThemes.set(chatId, themeId);
+        const currentTheme = themes.getCurrentTheme();
+        await bot.sendMessage(chatId,
+          `🎨 <b>Theme Changed!</b>\n\n` +
+          `${currentTheme.name}\n\n` +
+          `All future messages will use this theme. You can change it anytime with /themes.`,
+          { parse_mode: 'HTML' }
+        );
+      } else {
+        await bot.sendMessage(chatId, '❌ <b>Invalid theme</b>\n\nUse /themes to see available options.', { parse_mode: 'HTML' });
+      }
+    }
   }
-}
 
 // ── Commands ───────────────────────────────────────────────────────────────────
 async function cmdList(chatId, page = 0) {
@@ -799,21 +852,23 @@ async function sendStartupNotifications() {
   try {
     for (const chatId of ALLOWED) {
       if (checkRateLimit(chatId, bot)) {
-        await bot.sendMessage(chatId, 
-          '🐟 <b>hAI · HighFish Agenten API DB</b>\n\n' +
-          '✅ Bot started successfully\n' +
-          '📡 Ready for commands\n' +
-          '🛡️ Use /backup to create backup\n' +
-          '🔍 Use /help for available commands',
-          { parse_mode: 'HTML' }
-        );
+          const userTheme = userThemes.get(chatId) || DEFAULT_THEME;
+          const formatters = themes.getFormatters();
+        
+          await bot.sendMessage(chatId, formatters.composeMessage([
+            formatters.header('🐟 hAI · HighFish Agenten API DB'),
+            '✅ Bot started successfully',
+            '📡 Ready for commands',
+            '🛡️ Use /backup to create backup',
+            '🔍 Use /help for available commands'
+          ]), { parse_mode: 'HTML' });
+        }
       }
+      lastStartupNotification = now;
+      console.log('[Telegram] Startup notifications sent');
+    } catch (error) {
+      console.error('[Telegram] Startup notification error:', error.message);
     }
-    lastStartupNotification = now;
-    console.log('[Telegram] Startup notifications sent');
-  } catch (error) {
-    console.error('[Telegram] Startup notification error:', error.message);
-  }
 }
 
 async function sendDailyStatus() {
@@ -838,28 +893,26 @@ async function sendDailyStatus() {
     const hours = Math.floor((uptime % 86400) / 3600);
     
     for (const chatId of ALLOWED) {
-      if (checkRateLimit(chatId, bot)) {
-        const statusMessage = days > 0 
-          ? `🐟 <b>hAI · HighFish Agenten API DB - Status</b>\n\n` +
-            `📊 <b>System Status:</b> OK\n` +
-            `📋 Total API Entries: ${totalEntries}\n` +
-            `⏱️ Uptime: ${days}d ${hours}h\n` +
-            `📡 Bot Status: Active\n` +
-            `🔧 Last Backup: Use /backup\n\n` +
-            `📖 Available: /help | /list | /search\n` +
-            `🛡️ Backup: /backup | Export: /export`
-          : `🐟 <b>hAI · HighFish Agenten API DB - Status</b>\n\n` +
-            `📊 <b>System Status:</b> OK\n` +
-            `📋 Total API Entries: ${totalEntries}\n` +
-            `⏱️ Uptime: ${hours}h\n` +
-            `📡 Bot Status: Active\n` +
-            `🔧 Last Backup: Use /backup\n\n` +
-            `📖 Available: /help | /list | /search\n` +
-            `🛡️ Backup: /backup | Export: /export`;
+          if (checkRateLimit(chatId, bot)) {
+            const userTheme = userThemes.get(chatId) || DEFAULT_THEME;
+            const formatters = themes.getFormatters();
+        
+            const statusParts = [
+              formatters.header('🐟 hAI · HighFish Agenten API DB - Status'),
+              formatters.success('System Status: OK'),
+              `📋 Total API Entries: ${totalEntries}`,
+              `⏱️ Uptime: ${days > 0 ? `${days}d ${hours}h` : `${hours}h`}`,
+              formatters.info('Bot Status: Active'),
+              formatters.warning('Last Backup: Use /backup'),
+              '',
+              formatters.subtitle('Available Commands'),
+              '📋 /help | /list | /search',
+              '🛡️ /backup | /export'
+            ];
 
-        await bot.sendMessage(chatId, statusMessage, { parse_mode: 'HTML' });
-      }
-    }
+            await bot.sendMessage(chatId, formatters.composeMessage(statusParts), { parse_mode: 'HTML' });
+          }
+        }
     
     lastDailyNotification = now;
     console.log('[Telegram] Daily status notification sent');
@@ -875,26 +928,130 @@ function startDailyTimer() {
   const [hours, minutes] = DAILY_NOTIFICATION_TIME.split(':').map(Number);
   
   const scheduleDailyNotification = () => {
-    const now = new Date();
-    const nextNotification = new Date();
-    nextNotification.setHours(hours, minutes, 0, 0);
+      // Clear any existing timer to prevent memory leaks
+      if (dailyTimer) {
+        clearTimeout(dailyTimer);
+        dailyTimer = null;
+      }
     
-    // If we've passed today's notification time, schedule for tomorrow
-    if (nextNotification <= now) {
-      nextNotification.setDate(nextNotification.getDate() + 1);
-    }
+      const now = new Date();
+      const nextNotification = new Date();
+      nextNotification.setHours(hours, minutes, 0, 0);
     
-    const delay = nextNotification.getTime() - now.getTime();
-    console.log(`[Telegram] Next daily status scheduled for: ${nextNotification.toLocaleString()}`);
+      // If we've passed today's notification time, schedule for tomorrow
+      if (nextNotification <= now) {
+        nextNotification.setDate(nextNotification.getDate() + 1);
+      }
     
-    setTimeout(() => {
-      sendDailyStatus();
-      scheduleDailyNotification(); // Schedule next day
-    }, delay);
-  };
+      const delay = nextNotification.getTime() - now.getTime();
+      console.log(`[Telegram] Next daily status scheduled for: ${nextNotification.toLocaleString()}`);
+    
+      dailyTimer = setTimeout(async () => {
+        try {
+          await sendDailyStatus();
+          scheduleDailyNotification(); // Schedule next day
+        } catch (error) {
+          console.error('[Telegram] Error in daily notification schedule:', error.message);
+          // Try to reschedule even if there was an error
+          setTimeout(() => scheduleDailyNotification(), 60000); // Wait 1 minute and retry
+        }
+      }, delay);
+    };
   
-  // Start the daily schedule
-  scheduleDailyNotification();
+    // Start the daily schedule
+    scheduleDailyNotification();
+}
+
+// ── Theme Commands ─────────────────────────────────────────────────────────────
+async function cmdTheme(chatId) {
+  const formatters = themes.getFormatters();
+  const currentTheme = themes.getCurrentTheme();
+  const availableThemes = themes.getAllThemes();
+  
+  const themeInfo = formatters.composeMessage([
+    formatters.header('🎨 Available Themes'),
+    'Choose a theme below to change the bot message styling:',
+    '',
+    ...availableThemes.map(theme => 
+      theme.current 
+        ? `✅ ${formatters.success(theme.name)} (current)`
+        : `⭕ ${theme.name}`
+    ),
+    '',
+    formatters.subtitle('Theme affects all future message formatting')
+  ]);
+  
+  const keyboard = availableThemes.map(theme => [{
+    text: theme.current ? `🌟 ${theme.name} (current)` : `🎨 ${theme.name}`,
+    callback_data: `cmd:theme_${theme.id}`
+  }]);
+  
+  await bot.sendMessage(chatId, themeInfo, {
+    parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: keyboard
+    }
+  });
+}
+
+async function cmdThemes(chatId) {
+  const formatters = themes.getFormatters();
+  const currentTheme = themes.getCurrentTheme();
+  
+  const themesMessage = formatters.composeMessage([
+    formatters.header('🎨 Current Theme'),
+    currentTheme.name,
+    '',
+    formatters.subtitle('Your theme preference is saved for this chat'),
+    '',
+    formatters.info('Use /theme to see all options'),
+    formatters.info('Themes are mobile-optimized for better display')
+  ]);
+  
+  await bot.sendMessage(chatId, themesMessage, {
+    parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: [[
+        { text: '🎨 Change Theme', callback_data: 'cmd:themes' },
+        { text: '📋 Main Menu', callback_data: 'cmd:list' }
+      ]]
+    }
+  });
+}
+
+async function cmdHelp(chatId) {
+  const formatters = themes.getFormatters();
+  const userTheme = userThemes.get(chatId) || DEFAULT_THEME;
+  
+  const helpMessage = formatters.composeMessage([
+    formatters.header('🤖 Bot Help'),
+    '✅ <b>Commands:</b>',
+    '📋 /list - List all API entries',
+    '➕ /add - Create new API entry',
+    '🔍 /search [term] - Search entries',
+    '🛡️ /backup - Create PDF + JSON backup',
+    '💾 /export - Export as JSON',
+    '📊 /status - System status overview',
+    '❤️ /health - Health check',
+    '🎨 /theme - Change message styling',
+    '❓ /help - Show this help',
+    '',
+    formatters.subtitle('Inline Menu'),
+    'Tap buttons for quick actions',
+    '',
+    formatters.info('Themes are saved per chat'),
+    formatters.warning('Rate limit: 20 messages/min')
+  ]);
+  
+  await bot.sendMessage(chatId, helpMessage, {
+    parse_mode: 'HTML',
+    reply_markup: {
+      inline_keyboard: [[
+        { text: '🎨 Change Theme', callback_data: 'cmd:themes' },
+        { text: '📋 Show Commands', callback_data: 'cmd:list' }
+      ]]
+    }
+  });
 }
 
 // ── Module init ────────────────────────────────────────────────────────────────
@@ -947,7 +1104,7 @@ function init({ db: _db, app }) {
   console.log(`[Telegram] Bot active – polling: ${!USE_WEBHOOK}, allowed chats: ${ALLOWED.join(', ') || '(none)'}`);
 
   // Send startup notifications
-  setTimeout(() => {
+    startupTimeout = setTimeout(() => {
     sendStartupNotifications().catch(err => {
       console.error('[Telegram] Startup notification failed:', err.message);
     });
@@ -959,4 +1116,34 @@ function init({ db: _db, app }) {
   console.log('[Telegram] Notifications enabled - startup and daily status configured');
   }
 
-module.exports = { init, chunk };
+  // Cleanup function to prevent memory leaks
+  function cleanup() {
+    if (dailyTimer) {
+      clearTimeout(dailyTimer);
+      dailyTimer = null;
+    }
+    if (startupTimeout) {
+      clearTimeout(startupTimeout);
+      startupTimeout = null;
+    }
+    console.log('[Telegram] Cleanup completed - timers cleared');
+  }
+
+  // Add process event listeners for graceful shutdown
+  process.on('SIGINT', () => {
+    console.log('[Telegram] Received SIGINT - cleaning up...');
+    cleanup();
+    process.exit(0);
+  });
+
+  process.on('SIGTERM', () => {
+    console.log('[Telegram] Received SIGTERM - cleaning up...');
+    cleanup();
+    process.exit(0);
+  });
+
+  process.on('exit', () => {
+    cleanup();
+  });
+
+  module.exports = { init, chunk, cleanup };
