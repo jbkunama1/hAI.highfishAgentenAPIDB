@@ -1101,7 +1101,8 @@ function init({ db: _db, app }) {
   db = _db;
 
   if (!TOKEN) {
-    console.log('[Telegram] TELEGRAM_BOT_TOKEN not set – bot inactive.');
+    console.error('[Telegram] TELEGRAM_BOT_TOKEN not set – bot inactive.');
+    console.error('[Telegram] Please set the TELEGRAM_BOT_TOKEN environment variable');
     return;
   }
 
@@ -1187,6 +1188,14 @@ function init({ db: _db, app }) {
       await cmdThemes(query.message.chat.id);
     });
 
+    bot.on('message', handleMessage);
+    bot.on('callback_query', handleCallbackQuery);
+
+    bot.action('cmd:themes', async (query) => {
+      await query.answer();
+      await cmdThemes(query.message.chat.id);
+    });
+
     bot.action('cmd:list', async (query) => {
       await query.answer();
       await cmdList(query.message.chat.id);
@@ -1226,9 +1235,6 @@ function init({ db: _db, app }) {
       await query.answer();
       await cmdHelp(query.message.chat.id);
     });
-
-    bot.on('message', handleMessage);
-    bot.on('callback_query', handleCallbackQuery);
 
   if (USE_WEBHOOK) {
     const url = `https://your-domain.com${WEBHOOK_PATH}`;
