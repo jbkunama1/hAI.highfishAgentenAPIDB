@@ -16,6 +16,7 @@ RUN npm install
 COPY index.html ./
 COPY server.js ./
 COPY telegram.js ./
+COPY themes.js ./
 COPY highfishapidblogo.png ./
 COPY backup.sh ./
 
