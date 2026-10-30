@@ -36,8 +36,8 @@ RUN chown -R node:node /app /data /backup
 EXPOSE 3000
 
 # Health check using curl
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
-# Start cron and application
-CMD crond -f -l 2 & npm start
+# Start application only (disable cron temporarily to isolate issue)
+CMD npm start
