@@ -147,9 +147,9 @@ async function sendChunks(chatId, text, options = {}) {
   }
 }
 
-function buildMenu() {
+function buildMenu(chatId) {
   const formatters = themes.getFormatters();
-  const userTheme = userThemes.get(chatId) || DEFAULT_THEME;
+  const userTheme = chatId ? (userThemes.get(chatId) || DEFAULT_THEME) : DEFAULT_THEME;
   
   const themeButtons = themes.getAllThemes().map(theme => ({
     text: theme.current ? `🌟 ${theme.name} (current)` : `🎨 ${theme.name}`,
@@ -254,7 +254,7 @@ async function handleMessage(msg) {
         await bot.sendMessage(
           chatId,
           '🐟 <b>hAI · HighFish Agenten API DB</b>\n\nUse the menu below or type /help for commands.',
-          { parse_mode: 'HTML', ...buildMenu() }
+          { parse_mode: 'HTML', ...buildMenu(chatId) }
         );
         break;
             case '/test':
