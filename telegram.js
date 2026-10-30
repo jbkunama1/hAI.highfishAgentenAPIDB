@@ -792,6 +792,44 @@ async function createPDFBackup(rows) {
   });
 }
 
+async function cmdStatus(chatId) {
+  try {
+    // Get system statistics
+    const totalEntries = await new Promise((res, rej) =>
+      db.get('SELECT COUNT(*) AS count FROM api_entries', [], (err, r) =>
+        err ? rej(err) : res(r.count)
+      )
+    );
+
+    const uptime = process.uptime();
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    
+    const statusMessage = days > 0 
+      ? `🐟 <b>hAI · HighFish Agenten API DB - Status</b>\n\n` +
+        `📊 <b>System Status:</b> OK\n` +
+        `📋 Total API Entries: ${totalEntries}\n` +
+        `⏱️ Uptime: ${days}d ${hours}h\n` +
+        `📡 Bot Status: Active\n` +
+        `🔧 Last Backup: Use /backup\n\n` +
+        `📖 Available: /help | /list | /search\n` +
+        `🎨 Theme: Use /theme to change`
+      : `🐟 <b>hAI · HighFish Agenten API DB - Status</b>\n\n` +
+        `📊 <b>System Status:</b> OK\n` +
+        `📋 Total API Entries: ${totalEntries}\n` +
+        `⏱️ Uptime: ${hours}h\n` +
+        `📡 Bot Status: Active\n` +
+        `🔧 Last Backup: Use /backup\n\n` +
+        `📖 Available: /help | /list | /search\n` +
+        `🎨 Theme: Use /theme to change`;
+
+    await bot.sendMessage(chatId, statusMessage, { parse_mode: 'HTML' });
+  } catch (err) {
+    console.error('[Telegram] Status command error:', err);
+    await bot.sendMessage(chatId, '❌ Error getting status. Try again later.');
+  }
+}
+
 async function cmdDailyStatus(chatId) {
   try {
     // Get system statistics
@@ -1079,8 +1117,28 @@ function init({ db: _db, app }) {
       console.error('[Telegram] Webhook error:', error.code, error.message);
     });
 
-    bot.on('message', handleMessage);
-    bot.on('callback_query', handleCallbackQuery);
+    // Handle callback queries for inline buttons
+    async function handleCallbackQuery(query) {
+      const chatId = query.message.chat.id;
+      const callbackData = query.data;
+      
+      // Rate limiting for callback queries
+      if (!rateLimit(chatId)) {
+    await query.answer('⏳ Rate limit reached. Please wait a moment.', { show_alert: true });
+    return;
+      }
+      
+      // Check for admin commands
+      if (callbackData === 'cmd:admin' && ALLOWED.includes(String(chatId))) {
+    await query.answer();
+    await buildAdminMenu(chatId);
+    return;
+      }
+      
+      // Forward to specific command handlers (already handled by bot.action below)
+      // This is a fallback for any cases not caught by specific action handlers
+      await query.answer();
+    }
 
     // Add action handlers for inline buttons
     bot.action(/^cmd:theme_(.+)$/, async (query) => {
@@ -1088,38 +1146,38 @@ function init({ db: _db, app }) {
       const themeId = query.match[1];
       
       try {
-        // Set the theme for this chat
-        userThemes.set(chatId, themeId);
+    // Set the theme for this chat
+    userThemes.set(chatId, themeId);
         
-        // Get updated formatters
-        const formatters = themes.getFormatters();
-        const currentTheme = themes.getCurrentTheme();
+    // Get updated formatters
+    const formatters = themes.getFormatters();
+    const currentTheme = themes.getCurrentTheme();
         
-        // Send confirmation message
-        const message = formatters.composeMessage([
-          formatters.header('🎨 Theme Updated!'),
-          `✅ <b>${currentTheme.name}</b> is now active for this chat.`,
-          '',
-          formatters.subtitle('All future messages will use this theme'),
-          '',
-          formatters.info('Use /theme to change again or see all options')
-        ]);
+    // Send confirmation message
+    const message = formatters.composeMessage([
+      formatters.header('🎨 Theme Updated!'),
+      `✅ <b>${currentTheme.name}</b> is now active for this chat.`,
+      '',
+      formatters.subtitle('All future messages will use this theme'),
+      '',
+      formatters.info('Use /theme to change again or see all options')
+    ]);
         
-        await bot.sendMessage(chatId, message, {
-          parse_mode: 'HTML',
-          reply_markup: {
-            inline_keyboard: [[
-              { text: '🎨 Change Theme', callback_data: 'cmd:themes' },
-              { text: '📋 Show Commands', callback_data: 'cmd:list' }
-            ]]
-          }
-        });
+    await bot.sendMessage(chatId, message, {
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [[
+          { text: '🎨 Change Theme', callback_data: 'cmd:themes' },
+          { text: '📋 Show Commands', callback_data: 'cmd:list' }
+        ]]
+      }
+    });
         
-        // Answer the callback query
-        await query.answer();
+    // Answer the callback query
+    await query.answer();
       } catch (error) {
-        console.error('[Telegram] Theme change error:', error);
-        await query.answer('❌ Error changing theme', { show_alert: true });
+    console.error('[Telegram] Theme change error:', error);
+    await query.answer('❌ Error changing theme', { show_alert: true });
       }
     });
 
@@ -1169,40 +1227,8 @@ function init({ db: _db, app }) {
       await cmdHelp(query.message.chat.id);
     });
 
-        // Helper function for help command
-        async function cmdHelp(chatId) {
-          const formatters = themes.getFormatters();
-    
-          const helpMessage = formatters.composeMessage([
-            formatters.header('📖 Bot Commands'),
-            '',
-            '<b>Core Commands:</b>',
-            '/start – Show main menu',
-            '/help – This help message',
-            '/list – List all API entries',
-            '/search <term> – Search entries',
-            '/add – Add new entry',
-            '/edit – Edit existing entry',
-            '',
-            '<b>Management:</b>',
-            '/health – Server health check',
-            '/export – Export all entries as JSON',
-            '/backup – Create PDF + JSON backup',
-            '/status – Daily status overview',
-            '/cancel – Cancel ongoing operation',
-            '',
-            '<b>Themes:</b>',
-            '/theme – Show current theme',
-            '/themes – Change theme styling',
-            '',
-            '<b>Admin:</b>',
-            '/admin – Admin commands menu',
-            '',
-            formatters.info('API keys are always masked for security')
-          ]);
-    
-          await bot.sendMessage(chatId, helpMessage, { parse_mode: 'HTML' });
-        }
+    bot.on('message', handleMessage);
+    bot.on('callback_query', handleCallbackQuery);
 
   if (USE_WEBHOOK) {
     const url = `https://your-domain.com${WEBHOOK_PATH}`;
@@ -1237,29 +1263,6 @@ function init({ db: _db, app }) {
 
   console.log('[Telegram] Notifications enabled - startup and daily status configured');
   }
-
-    // Handle callback queries for inline buttons
-    async function handleCallbackQuery(query) {
-      const chatId = query.message.chat.id;
-      const callbackData = query.data;
-    
-      // Rate limiting for callback queries
-      if (!rateLimit(chatId)) {
-        await query.answer('⏳ Rate limit reached. Please wait a moment.', { show_alert: true });
-        return;
-      }
-    
-      // Check for admin commands
-      if (callbackData === 'cmd:admin' && ALLOWED.includes(String(chatId))) {
-        await query.answer();
-        await buildAdminMenu(chatId);
-        return;
-      }
-    
-      // Forward to specific command handlers (already handled by bot.action above)
-      // This is a fallback for any cases not caught by specific action handlers
-      await query.answer();
-    }
 
   // Cleanup function to prevent memory leaks
   function cleanup() {
