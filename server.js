@@ -246,6 +246,23 @@ function initializeDatabase() {
       }
     }, 1000); // 1 second delay to ensure DB is ready
 
+    // Initialize MCP Server
+    try {
+      const MCPServer = require('./mcp-server');
+      const mcpServer = new MCPServer({
+        port: process.env.MCP_PORT || 3001,
+        host: process.env.MCP_HOST || 'localhost',
+        debug: process.env.MCP_DEBUG === 'true'
+      });
+      mcpServer.start().then(() => {
+        console.log('[MCP] Server initialized and running');
+      }).catch(err => {
+        console.error('[MCP] Failed to initialize:', err);
+      });
+    } catch (err) {
+      console.error('[MCP] Failed to initialize:', err);
+    }
+
     // --- API Routes ---
 
 // GET all entries (with optional paging: ?page=1&limit=50)

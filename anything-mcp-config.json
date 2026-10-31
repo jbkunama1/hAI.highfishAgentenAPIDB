@@ -1,0 +1,174 @@
+{
+  "name": "highfish-api-db-mcp",
+  "version": "1.0.0",
+  "description": "hAI · HighFish Agenten API DB MCP Server",
+  "author": "jbkunama1",
+  "repository": "https://github.com/jbkunama1/hAI.highfishAgentenAPIDB",
+  "type": "mcp",
+  "servers": [
+    {
+      "command": "node",
+      "args": ["./mcp-server.js"],
+      "env": {
+        "MCP_PORT": "3001",
+        "MCP_HOST": "localhost",
+        "MCP_DEBUG": "false"
+      }
+    }
+  ],
+  "tools": [
+    {
+      "name": "list_api_entries",
+      "description": "List all API entries from the database with optional filtering",
+      "parameters": {
+        "page": {
+          "type": "integer",
+          "description": "Page number for pagination (default: 1)",
+          "default": 1
+        },
+        "limit": {
+          "type": "integer", 
+          "description": "Maximum number of entries to return (max: 500, default: 100)",
+          "default": 100
+        },
+        "search": {
+          "type": "string",
+          "description": "Search term to filter entries by name, URL, category or notes"
+        },
+        "category": {
+          "type": "string",
+          "description": "Filter by category"
+        }
+      }
+    },
+    {
+      "name": "get_api_entry",
+      "description": "Get a specific API entry by ID",
+      "parameters": {
+        "id": {
+          "type": "integer",
+          "description": "The ID of the API entry to retrieve",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "create_api_entry",
+      "description": "Create a new API entry in the database",
+      "parameters": {
+        "name": {
+          "type": "string",
+          "description": "Name of the API entry",
+          "required": true
+        },
+        "url": {
+          "type": "string",
+          "description": "URL of the API entry"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "API key (will be masked in responses)",
+          "required": true
+        },
+        "category": {
+          "type": "string",
+          "description": "Category for the API entry"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notes for the API entry"
+        }
+      }
+    },
+    {
+      "name": "update_api_entry",
+      "description": "Update an existing API entry",
+      "parameters": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the entry to update",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "description": "Updated name"
+        },
+        "url": {
+          "type": "string",
+          "description": "Updated URL"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "Updated API key"
+        },
+        "category": {
+          "type": "string",
+          "description": "Updated category"
+        },
+        "notes": {
+          "type": "string",
+          "description": "Updated notes"
+        }
+      }
+    },
+    {
+      "name": "delete_api_entry",
+      "description": "Delete an API entry from the database",
+      "parameters": {
+        "id": {
+          "type": "integer",
+          "description": "ID of the entry to delete",
+          "required": true
+        }
+      }
+    },
+    {
+      "name": "export_api_entries",
+      "description": "Export all API entries as JSON, CSV, or text",
+      "parameters": {
+        "format": {
+          "type": "string",
+          "enum": ["json", "csv", "txt"],
+          "description": "Export format (default: json)",
+          "default": "json"
+        },
+        "search": {
+          "type": "string",
+          "description": "Optional search filter for export"
+        }
+      }
+    },
+    {
+      "name": "import_api_entries",
+      "description": "Import API entries from text or JSON data",
+      "parameters": {
+        "data": {
+          "type": "array",
+          "description": "Array of API entries to import",
+          "required": true
+        },
+        "format": {
+          "type": "string",
+          "enum": ["json", "text"],
+          "description": "Format of import data",
+          "default": "json"
+        }
+      }
+    },
+    {
+      "name": "get_database_stats",
+      "description": "Get database statistics and system information",
+      "parameters": {}
+    }
+  ],
+  "capabilities": {
+    "tools": true,
+    "resources": false,
+    "logging": false
+  },
+  "permissions": {
+    "tools": ["read", "write"],
+    "resources": [],
+    "logging": []
+  }
+}

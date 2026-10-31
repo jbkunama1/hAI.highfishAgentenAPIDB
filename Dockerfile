@@ -17,6 +17,7 @@ COPY index.html ./
 COPY server.js ./
 COPY telegram.js ./
 COPY themes.js ./
+COPY mcp-server.js ./
 COPY highfishapidblogo.png ./
 COPY backup.sh ./
 
@@ -32,8 +33,8 @@ RUN echo "0 2 * * * /app/backup.sh >> /var/log/cron.log 2>&1" > /etc/crontabs/ro
 # Ensure non-root user owns project and data directories
 RUN chown -R node:node /app /data /backup
 
-# Expose port
-EXPOSE 3000
+# Expose ports
+EXPOSE 3000 3001
 
 # Health check using curl (increased start period for Docker rebuild)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \

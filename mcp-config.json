@@ -1,0 +1,43 @@
+{
+  "server": {
+    "host": "localhost",
+    "port": 3001,
+    "debug": false
+  },
+  "tools": {
+    "api_management": {
+      "list_api_entries": {
+        "enabled": true,
+        "rate_limit": 100
+      },
+      "create_api_entry": {
+        "enabled": true,
+        "rate_limit": 50
+      },
+      "update_api_entry": {
+        "enabled": true,
+        "rate_limit": 50
+      },
+      "delete_api_entry": {
+        "enabled": true,
+        "rate_limit": 20
+      }
+    },
+    "data_export": {
+      "export_api_entries": {
+        "enabled": true,
+        "rate_limit": 10
+      },
+      "import_api_entries": {
+        "enabled": true,
+        "rate_limit": 5
+      }
+    },
+    "system_info": {
+      "get_database_stats": {
+        "enabled": true,
+        "rate_limit": 10
+      }
+    }
+  }
+}
