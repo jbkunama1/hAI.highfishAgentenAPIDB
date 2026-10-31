@@ -2,6 +2,7 @@
 [![Status](https://img.shields.io/badge/status-active-brightgreen?style=for-the-badge)](https://github.com/jbkunama1/hAI.highfishAgentenAPIDB)
 [![WebApp](https://img.shields.io/badge/WebApp-Responsive-0f766e?style=for-the-badge&logo=html5&logoColor=white)](https://github.com/jbkunama1/hAI.highfishAgentenAPIDB)
 [![API](https://img.shields.io/badge/API-Manager-6f42c1?style=for-the-badge&logo=api&logoColor=white)](https://github.com/jbkunama1/hAI.highfishAgentenAPIDB)
+[![MCP](https://img.shields.io/badge/MCP-Server-8b5cf6?style=for-the-badge&logo=protocol&logoColor=white)](https://github.com/jbkunama1/hAI.highfishAgentenAPIDB)
 [![DarkTheme](https://img.shields.io/badge/Theme-Dark-222222?style=for-the-badge&logo=darkreader&logoColor=white)](https://github.com/jbkunama1/hAI.highfishAgentenAPIDB)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
@@ -34,6 +35,8 @@
 - [Umgebungsvariablen](#umgebungsvariablen)
   - [Authentifizierung](#authentifizierung)
 - [Lizenz](#lizenz)
+- [MCP Server Integration](#mcp-server-integration)
+- [Environment Variables](#environment-variables)
 
 ---
 
@@ -59,6 +62,7 @@
 - ✅ **CI/CD** – automatischer Docker-Build per GitHub Actions (bei Push + manuell)
 - ✅ Docker-ready (inkl. Volume-Persistenz, läuft als non-root)
 - ✅ Integriertes Web-UI
+- ✅ **MCP Server** für AnythingMCP Integration (Port 3001)
 
 ---
 
@@ -530,6 +534,11 @@ Tabelle: `api_entries`
 | `TELEGRAM_BOT_TOKEN` | – | Telegram Bot Token von @BotFather |
 | `TELEGRAM_ALLOWED_CHAT_IDS` | – | Kommagetrennte Liste erlaubter Telegram Chat-IDs |
 | `TELEGRAM_ADMIN_API_KEY` | – | Optionaler Admin API-Key für den Bot |
+| `MCP_PORT` | `3001` | MCP Server Port |
+| `MCP_HOST` | `localhost` | MCP Server Host |
+| `MCP_DEBUG` | `false` | MCP Server Debug Mode |
+
+> **Hinweis:** Alle MCP-Variablen sind in [ENVIRONMENT.md](ENVIRONMENT.md) dokumentiert.
 
 ### Authentifizierung
 
@@ -551,6 +560,73 @@ curl -u admin:geheim http://localhost:3000/api/entries
 ```
 
 **Wichtig:** Ohne gesetzten `API_KEY`/`AUTH_*` sind die Routen weiterhin offen. Setze die Variablen in Produktion immer! In `docker-compose.yml` werden die Variablen bereits aus der lokalen `.env` übernommen.
+
+## Environment Variables
+
+Eine vollständige Liste aller Umgebungsvariablen findest du in [ENVIRONMENT.md](ENVIRONMENT.md).
+
+| Bereich | Variablen |
+|---------|-----------|
+| [Grundkonfiguration](#environment-variables) | `PORT`, `DB_PATH`, `NODE_ENV`, `ALLOWED_ORIGINS` |
+| [Authentifizierung](#environment-variables) | `API_KEY`, `AUTH_USER`, `AUTH_PASSWORD` |
+| [MCP Server](#environment-variables) | `MCP_PORT`, `MCP_HOST`, `MCP_DEBUG` |
+| [Telegram Bot](#environment-variables) | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ALLOWED_CHAT_IDS`, `TELEGRAM_DAILY_TIME` |
+
+## MCP Server Integration
+
+Der integrierte **MCP (Model Context Protocol) Server** ermöglicht die Integration der API-Datenbank in AnythingMCP-fähige Agenten. Über 8 Tools zur Verwaltung von API-Einträgen können direkt aus Agenten aufgerufen werden.
+
+### Einrichtung
+
+1. **MCP Server starten:**
+   ```bash
+   # Der MCP Server läuft automatisch mit dem Hauptserver auf Port 3001
+   # Test: curl http://localhost:3001/mcp/health
+   ```
+
+2. **AnythingMCP Konfiguration:**
+   Kopiere `anything-mcp-config.json` in deine AnythingMCP-Konfiguration:
+
+   ```json
+   {
+     "name": "HighFish API DB",
+     "command": "node",
+     "args": ["mcp-server.js"],
+     "env": {
+       "MCP_PORT": "3001",
+       "MCP_HOST": "localhost",
+       "MCP_DEBUG": "false"
+     }
+   }
+   ```
+
+3. **Verfügbare MCP Tools:**
+   - `list_api_entries` - API-Einträge auflisten
+   - `get_api_entry` - Einzelnen Eintrag abrufen
+   - `create_api_entry` - Neuen Eintrag erstellen
+   - `update_api_entry` - Eintrag aktualisieren
+   - `delete_api_entry` - Eintrag löschen
+   - `export_api_entries` - Daten exportieren
+   - `import_api_entries` - Daten importieren
+   - `get_database_stats` - Systemstatistiken
+
+### Beispiel-Nutzung
+
+**MCP Tool Call:**
+```json
+{
+  "method": "tools/call",
+  "params": {
+    "name": "list_api_entries",
+    "arguments": {
+      "limit": 50,
+      "category": "AI"
+    }
+  }
+}
+```
+
+**Dokumentation:** Siehe [README-MCP.md](README-MCP.md) für detaillierte API-Referenz.
 
 ---
 
