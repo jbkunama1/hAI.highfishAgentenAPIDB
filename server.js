@@ -27,6 +27,12 @@ app.use(bodyParser.json({ limit: '1mb' }));
 // Serve only the logo image statically (keeps server.js, package.json, etc. private)
 app.use('/highfishapidblogo.png', express.static(path.join(__dirname, 'highfishapidblogo.png')));
 
+// Serve favicon assets without exposing the repository root.
+app.use('/favicon', express.static(path.join(__dirname, 'favicon'), { index: false, dotfiles: 'deny' }));
+app.get('/favicon.ico', (req, res) => {
+  res.sendFile(path.join(__dirname, 'favicon', 'favicon.ico'));
+});
+
 // Rate limiting (max 100 req/min per IP, auto-cleanup)
 const rateLimit = {};
 setInterval(() => {

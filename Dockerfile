@@ -19,6 +19,7 @@ COPY telegram.js ./
 COPY themes.js ./
 COPY mcp-server.js ./
 COPY highfishapidblogo.png ./
+COPY favicon/ ./favicon/
 COPY backup.sh ./
 
 # Create data and backup directories
