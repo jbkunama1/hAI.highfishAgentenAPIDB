@@ -1125,21 +1125,106 @@ function init({ db: _db, app }) {
       
       // Rate limiting for callback queries
       if (!rateLimit(chatId)) {
-    await query.answer('⏳ Rate limit reached. Please wait a moment.', { show_alert: true });
-    return;
+            await query.answer('⏳ Rate limit reached. Please wait a moment.', { show_alert: true });
+            return;
       }
       
       // Check for admin commands
       if (callbackData === 'cmd:admin' && ALLOWED.includes(String(chatId))) {
-    await query.answer();
-    await buildAdminMenu(chatId);
-    return;
+            await query.answer();
+            await buildAdminMenu(chatId);
+            return;
       }
       
-      // Forward to specific command handlers (already handled by bot.action below)
-      // This is a fallback for any cases not caught by specific action handlers
-      await query.answer();
-    }
+          // Handle theme selection
+          if (callbackData.startsWith('cmd:theme_')) {
+            const themeId = callbackData.replace('cmd:theme_', '');
+        
+            try {
+              userThemes.set(chatId, themeId);
+              const formatters = themes.getFormatters();
+              const currentTheme = themes.getCurrentTheme();
+          
+              const message = formatters.composeMessage([
+                formatters.header('🎨 Theme Updated!'),
+                `✅ <b>${currentTheme.name}</b> is now active for this chat.`,
+                '',
+                formatters.subtitle('All future messages will use this theme'),
+                '',
+                formatters.info('Use /theme to change again or see all options')
+              ]);
+          
+              await bot.sendMessage(chatId, message, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                  inline_keyboard: [[
+                    { text: '🎨 Change Theme', callback_data: 'cmd:themes' },
+                    { text: '📋 Show Commands', callback_data: 'cmd:list' }
+                  ]]
+                }
+              });
+          
+              await query.answer();
+            } catch (error) {
+              console.error('[Telegram] Theme change error:', error);
+              await query.answer('❌ Error changing theme', { show_alert: true });
+            }
+            return;
+          }
+      
+          // Handle command callbacks
+          switch (callbackData) {
+            case 'cmd:themes':
+              await query.answer();
+              await cmdThemes(chatId);
+              break;
+        
+            case 'cmd:list':
+              await query.answer();
+              await cmdList(chatId);
+              break;
+        
+            case 'cmd:add':
+              await query.answer();
+              await cmdAdd(chatId);
+              break;
+        
+            case 'cmd:search':
+              await query.answer();
+              await cmdSearch(chatId);
+              break;
+        
+            case 'cmd:export':
+              await query.answer();
+              await cmdExport(chatId);
+              break;
+        
+            case 'cmd:backup':
+              await query.answer();
+              await cmdBackup(chatId);
+              break;
+        
+            case 'cmd:status':
+              await query.answer();
+              await cmdStatus(chatId);
+              break;
+        
+            case 'cmd:health':
+              await query.answer();
+              await cmdHealth(chatId);
+              break;
+        
+            case 'cmd:help':
+              await query.answer();
+              await cmdHelp(chatId);
+              break;
+        
+            default:
+              // Unknown callback data
+              await query.answer('Unknown action');
+              break;
+          }
+        }
 
     // Add action handlers for inline buttons
     bot.action(/^cmd:theme_(.+)$/, async (query) => {
@@ -1182,59 +1267,9 @@ function init({ db: _db, app }) {
       }
     });
 
-    // Handle other command callbacks
-    bot.action('cmd:themes', async (query) => {
-      await query.answer();
-      await cmdThemes(query.message.chat.id);
-    });
-
-    bot.on('message', handleMessage);
-    bot.on('callback_query', handleCallbackQuery);
-
-    bot.action('cmd:themes', async (query) => {
-      await query.answer();
-      await cmdThemes(query.message.chat.id);
-    });
-
-    bot.action('cmd:list', async (query) => {
-      await query.answer();
-      await cmdList(query.message.chat.id);
-    });
-
-    bot.action('cmd:add', async (query) => {
-      await query.answer();
-      await cmdAdd(query.message.chat.id);
-    });
-
-    bot.action('cmd:search', async (query) => {
-      await query.answer();
-      await cmdSearch(query.message.chat.id);
-    });
-
-    bot.action('cmd:export', async (query) => {
-      await query.answer();
-      await cmdExport(query.message.chat.id);
-    });
-
-    bot.action('cmd:backup', async (query) => {
-      await query.answer();
-      await cmdBackup(query.message.chat.id);
-    });
-
-    bot.action('cmd:status', async (query) => {
-      await query.answer();
-      await cmdStatus(query.message.chat.id);
-    });
-
-    bot.action('cmd:health', async (query) => {
-      await query.answer();
-      await cmdHealth(query.message.chat.id);
-    });
-
-    bot.action('cmd:help', async (query) => {
-      await query.answer();
-      await cmdHelp(query.message.chat.id);
-    });
+        // Register event handlers
+        bot.on('message', handleMessage);
+        bot.on('callback_query', handleCallbackQuery);
 
   if (USE_WEBHOOK) {
     const url = `https://your-domain.com${WEBHOOK_PATH}`;
